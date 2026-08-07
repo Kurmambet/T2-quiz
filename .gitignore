@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+tree.py
+project_structure.md
