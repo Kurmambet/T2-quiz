@@ -370,3 +370,45 @@ button:disabled {
   font-size: 16px;
   line-height: 1;
 }
+
+.t2-game-settings {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid currentColor;
+}
+
+select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0.5rem;
+  padding: 0.7rem;
+  border: 2px solid currentColor;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--t2-font-body);
+  font-size: 16px;
+}
+
+select option {
+  background: var(--t2-white);
+  color: var(--t2-black);
+}
+
+.t2-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.t2-checkbox input {
+  width: 20px;
+  min-height: 20px;
+  margin: 0;
+  accent-color: var(--t2-magenta);
+}

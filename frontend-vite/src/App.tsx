@@ -47,6 +47,27 @@ type ApiError = {
   detail?: string;
 };
 
+type QuizTemplate = {
+  id: string;
+  title: string;
+  description: string | null;
+  is_published: boolean;
+  created_at: string;
+  questions_count: number;
+};
+
+type GameSession = {
+  id: string;
+  room_id: string;
+  game_type: string;
+  quiz_template_id: string | null;
+  settings: Record<string, unknown>;
+  state: Record<string, unknown>;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+};
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -94,6 +115,14 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
   const [lobby, setLobby] = useState<RoomLobby | null>(null);
+
+  const [quizTemplates, setQuizTemplates] = useState<QuizTemplate[]>([]);
+  const [gameSession, setGameSession] = useState<GameSession | null>(null);
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [defaultTimeLimit, setDefaultTimeLimit] = useState(30);
+  const [allowLateJoin, setAllowLateJoin] = useState(true);
+  const [showCorrectAnswer, setShowCorrectAnswer] = useState(true);
 
   useEffect(() => {
     async function restoreParticipantSession() {
@@ -149,6 +178,33 @@ function App() {
 
         setOrganizerSession(savedSession);
         setLobby(roomLobby);
+        try {
+          const savedGameSession = await apiRequest<GameSession>(
+            `/api/v1/rooms/${savedSession.roomCode}/game`,
+          );
+
+          setGameSession(savedGameSession);
+          setSelectedTemplateId(savedGameSession.quiz_template_id ?? "");
+
+          const configuredTimeLimit =
+            savedGameSession.settings.default_time_limit_seconds;
+
+          if (typeof configuredTimeLimit === "number") {
+            setDefaultTimeLimit(configuredTimeLimit);
+          }
+
+          if (typeof savedGameSession.settings.allow_late_join === "boolean") {
+            setAllowLateJoin(savedGameSession.settings.allow_late_join);
+          }
+
+          if (
+            typeof savedGameSession.settings.show_correct_answer === "boolean"
+          ) {
+            setShowCorrectAnswer(savedGameSession.settings.show_correct_answer);
+          }
+        } catch {
+          setGameSession(null);
+        }
       } catch {
         clearActiveOrganizerSession();
         setOrganizerSession(null);
@@ -156,6 +212,22 @@ function App() {
     }
 
     void restoreOrganizerSession();
+  }, []);
+
+  useEffect(() => {
+    async function loadQuizTemplates() {
+      try {
+        const templates = await apiRequest<QuizTemplate[]>(
+          "/api/v1/quiz-templates",
+        );
+
+        setQuizTemplates(templates);
+      } catch {
+        setMessage("Не удалось загрузить список готовых квизов.");
+      }
+    }
+
+    void loadQuizTemplates();
   }, []);
 
   function clearParticipantSession() {
@@ -188,6 +260,12 @@ function App() {
         roomCode: room.code,
         organizerToken: room.organizer_token,
       });
+
+      setGameSession(null);
+      setSelectedTemplateId("");
+      setDefaultTimeLimit(30);
+      setAllowLateJoin(true);
+      setShowCorrectAnswer(true);
 
       const roomLobby = await apiRequest<RoomLobby>(
         `/api/v1/rooms/${room.code}`,
@@ -327,6 +405,12 @@ function App() {
   if (organizerSession && lobby) {
     const canStartRoom = lobby.room.status === "lobby";
 
+    const selectedTemplate = quizTemplates.find(
+      (template) => template.id === selectedTemplateId,
+    );
+
+    const hasConfiguredGame = gameSession !== null;
+
     return (
       <main className="t2-page">
         <section className="t2-bento">
@@ -341,10 +425,94 @@ function App() {
               Игроков в lobby: {lobby.participants.length}
             </p>
 
+            {canStartRoom && (
+              <section className="t2-game-settings">
+                <p className="t2-eyebrow">Настройка игры</p>
+
+                <label className="t2-copy" htmlFor="quiz-template">
+                  Готовый квиз
+                </label>
+
+                <select
+                  id="quiz-template"
+                  onChange={(event) => {
+                    setSelectedTemplateId(event.target.value);
+                    setGameSession(null);
+                  }}
+                  value={selectedTemplateId}
+                >
+                  <option value="">Выбери квиз</option>
+
+                  {quizTemplates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.title} · {template.questions_count} вопросов
+                    </option>
+                  ))}
+                </select>
+
+                {selectedTemplate && (
+                  <p className="t2-copy">
+                    {selectedTemplate.description ??
+                      "Описание для этого квиза пока не задано."}
+                  </p>
+                )}
+
+                <label className="t2-copy" htmlFor="time-limit">
+                  Время на вопрос: {defaultTimeLimit} сек.
+                </label>
+
+                <input
+                  id="time-limit"
+                  max="600"
+                  min="5"
+                  onChange={(event) =>
+                    setDefaultTimeLimit(Number(event.target.value))
+                  }
+                  type="number"
+                  value={defaultTimeLimit}
+                />
+
+                <label className="t2-checkbox">
+                  <input
+                    checked={allowLateJoin}
+                    onChange={(event) => setAllowLateJoin(event.target.checked)}
+                    type="checkbox"
+                  />
+                  Разрешить подключение после старта
+                </label>
+
+                <label className="t2-checkbox">
+                  <input
+                    checked={showCorrectAnswer}
+                    onChange={(event) =>
+                      setShowCorrectAnswer(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Показывать правильный ответ после вопроса
+                </label>
+
+                <button
+                  className="t2-button t2-button--outline"
+                  disabled={isLoading || !selectedTemplateId}
+                  onClick={handleConfigureGame}
+                  type="button"
+                >
+                  Сохранить настройки
+                </button>
+
+                {hasConfiguredGame && (
+                  <p className="t2-copy">
+                    Квиз настроен: можно запускать игру.
+                  </p>
+                )}
+              </section>
+            )}
+
             {canStartRoom ? (
               <button
                 className="t2-button t2-button--lime"
-                disabled={isLoading}
+                disabled={isLoading || !hasConfiguredGame}
                 onClick={handleStartRoom}
                 type="button"
               >
@@ -392,6 +560,45 @@ function App() {
     );
   }
 
+  async function handleConfigureGame() {
+    if (!organizerSession || !selectedTemplateId) {
+      setMessage("Сначала выбери готовый квиз.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const configuredGame = await apiRequest<GameSession>(
+        `/api/v1/rooms/${organizerSession.roomCode}/game`,
+        {
+          method: "POST",
+          headers: {
+            "X-Organizer-Token": organizerSession.organizerToken,
+          },
+          body: JSON.stringify({
+            quiz_template_id: selectedTemplateId,
+            settings: {
+              allow_late_join: allowLateJoin,
+              show_correct_answer: showCorrectAnswer,
+              default_time_limit_seconds: defaultTimeLimit,
+            },
+          }),
+        },
+      );
+
+      setGameSession(configuredGame);
+      setMessage("Квиз выбран и настройки сохранены.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Не удалось настроить игру",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleStartRoom() {
     if (!organizerSession || !lobby) {
       return;
@@ -415,6 +622,12 @@ function App() {
         ...lobby,
         room,
       });
+
+      const startedGame = await apiRequest<GameSession>(
+        `/api/v1/rooms/${organizerSession.roomCode}/game`,
+      );
+
+      setGameSession(startedGame);
 
       setMessage(
         "Игра началась. Участники увидят новый статус после обновления.",
