@@ -1,4 +1,10 @@
-import { FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
+import {
+  clearActiveParticipantSession,
+  getActiveParticipantSession,
+  saveOrganizerSession,
+  saveParticipantSession,
+} from "./lib/game-session";
 
 type Room = {
   id: string;
@@ -79,20 +85,19 @@ function App() {
 
   useEffect(() => {
     async function restoreParticipantSession() {
-      const savedRoomCode = sessionStorage.getItem("room_code");
-      const participantToken = sessionStorage.getItem("participant_token");
+      const savedSession = getActiveParticipantSession();
 
-      if (!savedRoomCode || !participantToken) {
+      if (!savedSession) {
         setIsRestoringSession(false);
         return;
       }
 
       try {
         const session = await apiRequest<ParticipantSession>(
-          `/api/v1/rooms/${savedRoomCode}/me`,
+          `/api/v1/rooms/${savedSession.roomCode}/me`,
           {
             headers: {
-              "X-Participant-Token": participantToken,
+              "X-Participant-Token": savedSession.participantToken,
             },
           },
         );
@@ -112,9 +117,7 @@ function App() {
   }, []);
 
   function clearParticipantSession() {
-    sessionStorage.removeItem("room_code");
-    sessionStorage.removeItem("username");
-    sessionStorage.removeItem("participant_token");
+    clearActiveParticipantSession();
 
     setParticipantSession(null);
     setRoomCode("");
@@ -135,8 +138,10 @@ function App() {
         }),
       });
 
-      sessionStorage.setItem("organizer_token", room.organizer_token);
-      sessionStorage.setItem("organizer_room_code", room.code);
+      saveOrganizerSession({
+        roomCode: room.code,
+        organizerToken: room.organizer_token,
+      });
 
       setRoomCode(room.code);
       setMessage(`Рум создан. Код для участников: ${room.code}`);
@@ -168,12 +173,11 @@ function App() {
         },
       );
 
-      sessionStorage.setItem("room_code", normalizedRoomCode);
-      sessionStorage.setItem("username", participant.username);
-      sessionStorage.setItem(
-        "participant_token",
-        participant.participant_token,
-      );
+      saveParticipantSession({
+        roomCode: normalizedRoomCode,
+        username: participant.username,
+        participantToken: participant.participant_token,
+      });
 
       const session = await apiRequest<ParticipantSession>(
         `/api/v1/rooms/${normalizedRoomCode}/me`,

@@ -14,7 +14,7 @@ docker compose -f compose.dev.yml up --build -d
 ```bash
 npm install
 npm run dev
-
+npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 
 npm run build
 npm run preview

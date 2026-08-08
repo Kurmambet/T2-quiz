@@ -165,7 +165,7 @@ a {
   max-width: 12ch;
   margin: 0;
   font-size: clamp(40px, 6vw, 112px);
-  line-height: 0.86;
+  line-height: 0.96;
 }
 .t2-title--stencil {
   font-family: var(--t2-font-stencil);
