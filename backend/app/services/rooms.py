@@ -1,11 +1,13 @@
 import hmac
 import secrets
+from datetime import UTC, datetime
 from typing import Final
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.game_session import GameSession
 from app.models.room import Room, RoomStatus
 from app.schemas.room import RoomCreate
 from app.services.tokens import generate_session_token, hash_session_token
@@ -24,6 +26,10 @@ class OrganizerTokenInvalidError(Exception):
 
 
 class RoomNotStartableError(Exception):
+    pass
+
+
+class GameNotConfiguredError(Exception):
     pass
 
 
@@ -95,7 +101,25 @@ async def start_room(
     if room.status != RoomStatus.LOBBY.value:
         raise RoomNotStartableError
 
+    game_session = await session.scalar(
+        select(GameSession).where(
+            GameSession.room_id == room.id,
+        )
+    )
+
+    if game_session is None or game_session.quiz_template_id is None:
+        raise GameNotConfiguredError
+
+    now = datetime.now(UTC)
+
     room.status = RoomStatus.ACTIVE.value
+
+    game_session.started_at = now
+    game_session.state = {
+        **game_session.state,
+        "phase": "active",
+        "current_question_position": 1,
+    }
 
     await session.commit()
     await session.refresh(room)

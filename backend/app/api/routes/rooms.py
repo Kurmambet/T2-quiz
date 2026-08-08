@@ -21,6 +21,7 @@ from app.services.participants import (
     join_room,
 )
 from app.services.rooms import (
+    GameNotConfiguredError,
     OrganizerTokenInvalidError,
     RoomNotFoundError,
     RoomNotStartableError,
@@ -101,6 +102,11 @@ async def start_room_endpoint(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid organizer token",
+        ) from error
+    except GameNotConfiguredError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Select a quiz template before starting the room",
         ) from error
     except RoomNotStartableError as error:
         raise HTTPException(
