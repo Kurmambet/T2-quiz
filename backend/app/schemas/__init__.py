@@ -1,3 +1,4 @@
+from app.schemas.lobby import RoomLobby
 from app.schemas.participant import (
     ParticipantJoin,
     ParticipantJoined,
@@ -13,5 +14,6 @@ __all__ = (
     "ParticipantSession",
     "RoomCreate",
     "RoomCreated",
+    "RoomLobby",
     "RoomRead",
 )

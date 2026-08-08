@@ -103,3 +103,23 @@ async def get_participant_session(
         raise ParticipantSessionNotFoundError
 
     return room, participant
+
+
+async def get_room_lobby(
+    session: AsyncSession,
+    room_code: str,
+) -> tuple[Room, list[Participant]]:
+    room = await get_room_by_code(
+        session=session,
+        room_code=room_code,
+    )
+
+    participants = list(
+        await session.scalars(
+            select(Participant)
+            .where(Participant.room_id == room.id)
+            .order_by(Participant.joined_at)
+        )
+    )
+
+    return room, participants

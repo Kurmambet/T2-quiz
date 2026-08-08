@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
+from app.schemas.lobby import RoomLobby
 from app.schemas.participant import (
     ParticipantJoin,
     ParticipantJoined,
@@ -17,6 +18,7 @@ from app.services.participants import (
     RoomNotJoinableError,
     UsernameAlreadyTakenError,
     get_participant_session,
+    get_room_lobby,
     join_room,
 )
 from app.services.rooms import create_room
@@ -56,6 +58,33 @@ async def create_room_endpoint(
     return RoomCreated(
         **room_data.model_dump(),
         organizer_token=organizer_token,
+    )
+
+
+@router.get(
+    "/{code}",
+    response_model=RoomLobby,
+)
+async def get_room_lobby_endpoint(
+    code: str,
+    session: DbSession,
+) -> RoomLobby:
+    try:
+        room, participants = await get_room_lobby(
+            session=session,
+            room_code=code,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+
+    return RoomLobby(
+        room=RoomRead.model_validate(room),
+        participants=[
+            ParticipantRead.model_validate(participant) for participant in participants
+        ],
     )
 
 

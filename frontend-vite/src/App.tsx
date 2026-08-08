@@ -35,6 +35,11 @@ type ParticipantSession = {
   participant: Participant;
 };
 
+type RoomLobby = {
+  room: Room;
+  participants: Participant[];
+};
+
 type ApiError = {
   detail?: string;
 };
@@ -82,6 +87,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
+  const [lobby, setLobby] = useState<RoomLobby | null>(null);
 
   useEffect(() => {
     async function restoreParticipantSession() {
@@ -105,6 +111,12 @@ function App() {
         setRoomCode(session.room.code);
         setUsername(session.participant.username);
         setParticipantSession(session);
+
+        const roomLobby = await apiRequest<RoomLobby>(
+          `/api/v1/rooms/${session.room.code}`,
+        );
+
+        setLobby(roomLobby);
       } catch {
         clearParticipantSession();
         setMessage("Предыдущая игровая сессия больше недоступна.");
@@ -191,6 +203,12 @@ function App() {
       setRoomCode(session.room.code);
       setUsername(session.participant.username);
       setParticipantSession(session);
+
+      const roomLobby = await apiRequest<RoomLobby>(
+        `/api/v1/rooms/${session.room.code}`,
+      );
+
+      setLobby(roomLobby);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Ошибка подключения к room",
@@ -239,7 +257,20 @@ function App() {
 
           <article className="t2-tile t2-tile--blue t2-span-12">
             <p className="t2-eyebrow">Lobby</p>
+
             <p className="t2-lead">Ожидаем, когда ведущий запустит игру.</p>
+
+            <p className="t2-copy">
+              Игроков в комнате: {lobby?.participants.length ?? 0}
+            </p>
+
+            <div className="t2-participants">
+              {lobby?.participants.map((participant) => (
+                <span className="t2-participant" key={participant.id}>
+                  {participant.username}
+                </span>
+              ))}
+            </div>
 
             <button
               className="t2-button t2-button--mono"
