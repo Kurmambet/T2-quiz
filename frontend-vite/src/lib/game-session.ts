@@ -4,7 +4,7 @@ type ParticipantSessionStorage = {
   participantToken: string;
 };
 
-type OrganizerSessionStorage = {
+export type OrganizerSessionStorage = {
   roomCode: string;
   organizerToken: string;
 };
@@ -89,4 +89,32 @@ export function saveOrganizerSession(session: OrganizerSessionStorage): void {
   );
 
   localStorage.setItem(ACTIVE_ORGANIZER_ROOM_KEY, roomCode);
+}
+
+export function getActiveOrganizerSession(): OrganizerSessionStorage | null {
+  const roomCode = localStorage.getItem(ACTIVE_ORGANIZER_ROOM_KEY);
+
+  if (!roomCode) {
+    return null;
+  }
+
+  const session = parseStorageValue<OrganizerSessionStorage>(
+    localStorage.getItem(organizerSessionKey(roomCode)),
+  );
+
+  if (!session) {
+    localStorage.removeItem(ACTIVE_ORGANIZER_ROOM_KEY);
+  }
+
+  return session;
+}
+
+export function clearActiveOrganizerSession(): void {
+  const roomCode = localStorage.getItem(ACTIVE_ORGANIZER_ROOM_KEY);
+
+  if (roomCode) {
+    localStorage.removeItem(organizerSessionKey(roomCode));
+  }
+
+  localStorage.removeItem(ACTIVE_ORGANIZER_ROOM_KEY);
 }

@@ -1,9 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import {
+  clearActiveOrganizerSession,
   clearActiveParticipantSession,
+  getActiveOrganizerSession,
   getActiveParticipantSession,
   saveOrganizerSession,
   saveParticipantSession,
+  type OrganizerSessionStorage,
 } from "./lib/game-session";
 
 type Room = {
@@ -84,6 +87,9 @@ function App() {
   const [participantSession, setParticipantSession] =
     useState<ParticipantSession | null>(null);
 
+  const [organizerSession, setOrganizerSession] =
+    useState<OrganizerSessionStorage | null>(null);
+
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringSession, setIsRestoringSession] = useState(true);
@@ -128,6 +134,30 @@ function App() {
     void restoreParticipantSession();
   }, []);
 
+  useEffect(() => {
+    async function restoreOrganizerSession() {
+      const savedSession = getActiveOrganizerSession();
+
+      if (!savedSession) {
+        return;
+      }
+
+      try {
+        const roomLobby = await apiRequest<RoomLobby>(
+          `/api/v1/rooms/${savedSession.roomCode}`,
+        );
+
+        setOrganizerSession(savedSession);
+        setLobby(roomLobby);
+      } catch {
+        clearActiveOrganizerSession();
+        setOrganizerSession(null);
+      }
+    }
+
+    void restoreOrganizerSession();
+  }, []);
+
   function clearParticipantSession() {
     clearActiveParticipantSession();
 
@@ -154,7 +184,16 @@ function App() {
         roomCode: room.code,
         organizerToken: room.organizer_token,
       });
+      setOrganizerSession({
+        roomCode: room.code,
+        organizerToken: room.organizer_token,
+      });
 
+      const roomLobby = await apiRequest<RoomLobby>(
+        `/api/v1/rooms/${room.code}`,
+      );
+
+      setLobby(roomLobby);
       setRoomCode(room.code);
       setMessage(`Рум создан. Код для участников: ${room.code}`);
     } catch (error) {
@@ -283,6 +322,117 @@ function App() {
         </section>
       </main>
     );
+  }
+
+  if (organizerSession && lobby) {
+    const canStartRoom = lobby.room.status === "lobby";
+
+    return (
+      <main className="t2-page">
+        <section className="t2-bento">
+          <article className="t2-tile t2-tile--white t2-span-8">
+            <p className="t2-eyebrow">Панель ведущего</p>
+
+            <h1 className="t2-title">{lobby.room.title}</h1>
+
+            <p className="t2-lead">Код для подключения: {lobby.room.code}</p>
+
+            <p className="t2-copy">
+              Игроков в lobby: {lobby.participants.length}
+            </p>
+
+            {canStartRoom ? (
+              <button
+                className="t2-button t2-button--lime"
+                disabled={isLoading}
+                onClick={handleStartRoom}
+                type="button"
+              >
+                Начать игру
+              </button>
+            ) : (
+              <p className="t2-copy">Игра уже запущена.</p>
+            )}
+          </article>
+
+          <aside className="t2-tile t2-tile--magenta t2-span-4">
+            <p className="t2-eyebrow">Статус</p>
+
+            <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
+          </aside>
+
+          <article className="t2-tile t2-tile--blue t2-span-12">
+            <p className="t2-eyebrow">Участники</p>
+
+            <div className="t2-participants">
+              {lobby.participants.map((participant) => (
+                <span className="t2-participant" key={participant.id}>
+                  {participant.username}
+                </span>
+              ))}
+            </div>
+
+            <button
+              className="t2-button t2-button--mono"
+              onClick={handleClearOrganizerSession}
+              type="button"
+            >
+              Очистить сессию ведущего
+            </button>
+          </article>
+
+          {message && (
+            <aside className="t2-tile t2-tile--black t2-span-12">
+              <p className="t2-eyebrow">Статус действия</p>
+              <p className="t2-lead">{message}</p>
+            </aside>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  async function handleStartRoom() {
+    if (!organizerSession || !lobby) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const room = await apiRequest<Room>(
+        `/api/v1/rooms/${organizerSession.roomCode}/start`,
+        {
+          method: "POST",
+          headers: {
+            "X-Organizer-Token": organizerSession.organizerToken,
+          },
+        },
+      );
+
+      setLobby({
+        ...lobby,
+        room,
+      });
+
+      setMessage(
+        "Игра началась. Участники увидят новый статус после обновления.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Не удалось начать игру",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleClearOrganizerSession() {
+    clearActiveOrganizerSession();
+    setOrganizerSession(null);
+    setLobby(null);
+    setMessage("Локальная сессия ведущего очищена.");
   }
 
   return (
