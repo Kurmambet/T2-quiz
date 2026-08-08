@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.room import RoomRead
+
 
 class ParticipantJoin(BaseModel):
     username: str = Field(
@@ -34,6 +36,11 @@ class ParticipantRead(BaseModel):
 class ParticipantJoined(ParticipantRead):
     participant_token: str = Field(
         description=(
-            "Токен участника для текущей игровой сессии. в sessionStorage его."
+            "Токен участника для текущей игровой сессии. Сохрани его в sessionStorage."
         ),
     )
+
+
+class ParticipantSession(BaseModel):
+    room: RoomRead
+    participant: ParticipantRead

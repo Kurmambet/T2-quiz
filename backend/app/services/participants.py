@@ -27,17 +27,33 @@ class UsernameAlreadyTakenError(Exception):
     pass
 
 
-async def join_room(
+class ParticipantSessionNotFoundError(Exception):
+    pass
+
+
+async def get_room_by_code(
     session: AsyncSession,
     room_code: str,
-    payload: ParticipantJoin,
-) -> tuple[Participant, str]:
+) -> Room:
     normalized_code = room_code.strip().upper()
 
     room = await session.scalar(select(Room).where(Room.code == normalized_code))
 
     if room is None:
         raise RoomNotFoundError
+
+    return room
+
+
+async def join_room(
+    session: AsyncSession,
+    room_code: str,
+    payload: ParticipantJoin,
+) -> tuple[Participant, str]:
+    room = await get_room_by_code(
+        session=session,
+        room_code=room_code,
+    )
 
     if room.status not in JOINABLE_ROOM_STATUSES:
         raise RoomNotJoinableError
@@ -62,3 +78,28 @@ async def join_room(
     await session.refresh(participant)
 
     return participant, participant_token
+
+
+async def get_participant_session(
+    session: AsyncSession,
+    room_code: str,
+    participant_token: str,
+) -> tuple[Room, Participant]:
+    room = await get_room_by_code(
+        session=session,
+        room_code=room_code,
+    )
+
+    token_hash = hash_session_token(participant_token)
+
+    participant = await session.scalar(
+        select(Participant).where(
+            Participant.room_id == room.id,
+            Participant.participant_token_hash == token_hash,
+        )
+    )
+
+    if participant is None:
+        raise ParticipantSessionNotFoundError
+
+    return room, participant
