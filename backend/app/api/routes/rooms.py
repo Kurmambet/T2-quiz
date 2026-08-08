@@ -14,14 +14,19 @@ from app.schemas.participant import (
 from app.schemas.room import RoomCreate, RoomCreated, RoomRead
 from app.services.participants import (
     ParticipantSessionNotFoundError,
-    RoomNotFoundError,
     RoomNotJoinableError,
     UsernameAlreadyTakenError,
     get_participant_session,
     get_room_lobby,
     join_room,
 )
-from app.services.rooms import create_room
+from app.services.rooms import (
+    OrganizerTokenInvalidError,
+    RoomNotFoundError,
+    RoomNotStartableError,
+    create_room,
+    start_room,
+)
 
 router = APIRouter(
     prefix="/rooms",
@@ -36,6 +41,11 @@ DbSession = Annotated[
 ParticipantToken = Annotated[
     str | None,
     Header(alias="X-Participant-Token"),
+]
+
+OrganizerToken = Annotated[
+    str | None,
+    Header(alias="X-Organizer-Token"),
 ]
 
 
@@ -59,6 +69,46 @@ async def create_room_endpoint(
         **room_data.model_dump(),
         organizer_token=organizer_token,
     )
+
+
+@router.post(
+    "/{code}/start",
+    response_model=RoomRead,
+)
+async def start_room_endpoint(
+    code: str,
+    session: DbSession,
+    organizer_token: OrganizerToken = None,
+) -> RoomRead:
+    if organizer_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Organizer token is required",
+        )
+
+    try:
+        room = await start_room(
+            session=session,
+            room_code=code,
+            organizer_token=organizer_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except OrganizerTokenInvalidError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid organizer token",
+        ) from error
+    except RoomNotStartableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Room can only be started from lobby",
+        ) from error
+
+    return RoomRead.model_validate(room)
 
 
 @router.get(

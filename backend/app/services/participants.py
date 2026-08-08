@@ -7,16 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.participant import Participant
 from app.models.room import Room, RoomStatus
 from app.schemas.participant import ParticipantJoin
+from app.services.rooms import get_room_by_code
 from app.services.tokens import generate_session_token, hash_session_token
 
 JOINABLE_ROOM_STATUSES: Final[set[str]] = {
     RoomStatus.LOBBY.value,
     RoomStatus.ACTIVE.value,
 }
-
-
-class RoomNotFoundError(Exception):
-    pass
 
 
 class RoomNotJoinableError(Exception):
@@ -29,20 +26,6 @@ class UsernameAlreadyTakenError(Exception):
 
 class ParticipantSessionNotFoundError(Exception):
     pass
-
-
-async def get_room_by_code(
-    session: AsyncSession,
-    room_code: str,
-) -> Room:
-    normalized_code = room_code.strip().upper()
-
-    room = await session.scalar(select(Room).where(Room.code == normalized_code))
-
-    if room is None:
-        raise RoomNotFoundError
-
-    return room
 
 
 async def join_room(

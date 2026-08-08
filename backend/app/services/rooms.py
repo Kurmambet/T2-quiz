@@ -1,6 +1,8 @@
+import hmac
 import secrets
 from typing import Final
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +15,34 @@ ROOM_CODE_LENGTH: Final[int] = 6
 ROOM_CODE_ATTEMPTS: Final[int] = 5
 
 
+class RoomNotFoundError(Exception):
+    pass
+
+
+class OrganizerTokenInvalidError(Exception):
+    pass
+
+
+class RoomNotStartableError(Exception):
+    pass
+
+
 def generate_room_code() -> str:
     return "".join(secrets.choice(ROOM_CODE_ALPHABET) for _ in range(ROOM_CODE_LENGTH))
+
+
+async def get_room_by_code(
+    session: AsyncSession,
+    room_code: str,
+) -> Room:
+    normalized_code = room_code.strip().upper()
+
+    room = await session.scalar(select(Room).where(Room.code == normalized_code))
+
+    if room is None:
+        raise RoomNotFoundError
+
+    return room
 
 
 async def create_room(
@@ -44,3 +72,32 @@ async def create_room(
         return room, organizer_token
 
     raise RuntimeError("Could not generate a unique room code")
+
+
+async def start_room(
+    session: AsyncSession,
+    room_code: str,
+    organizer_token: str,
+) -> Room:
+    room = await get_room_by_code(
+        session=session,
+        room_code=room_code,
+    )
+
+    received_token_hash = hash_session_token(organizer_token)
+
+    if not hmac.compare_digest(
+        received_token_hash,
+        room.organizer_token_hash,
+    ):
+        raise OrganizerTokenInvalidError
+
+    if room.status != RoomStatus.LOBBY.value:
+        raise RoomNotStartableError
+
+    room.status = RoomStatus.ACTIVE.value
+
+    await session.commit()
+    await session.refresh(room)
+
+    return room
