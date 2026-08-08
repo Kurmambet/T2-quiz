@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import async_session_factory
 from app.realtime.redis import redis_client
 
-
 router = APIRouter(tags=["system"])
 
 

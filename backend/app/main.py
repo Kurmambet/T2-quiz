@@ -10,7 +10,6 @@ from app.core.config import get_settings
 from app.db.session import async_session_factory, close_database
 from app.realtime.redis import close_redis, redis_client
 
-
 settings = get_settings()
 
 
