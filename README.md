@@ -71,24 +71,18 @@ sed -i 's#^sqlalchemy.url =.*#sqlalchemy.url =#' alembic.ini
 # КАК МИГРИРОВАТЬ через alembic
 
 ```bash
-# 1. Проверить, какую схему Alembic видит
+# Проверить, какую схему Alembic видит
 
 make check-migrations
 
-# 2. Сгенерировать миграцию
+# Сгенерировать миграцию
 
 make migration message="create rooms table"
-
-# 3. Проверить созданный файл вручную
-
-ls backend/alembic/versions/
-cat backend/alembic/versions/<новый_файл>.py
-
-# 4. Применить миграцию к dev-БД
+make migration message="add quiz templates and game sessions"
 
 make upgrade
 
-# 5. Убедиться в текущей версии
+# Убедиться в текущей версии
 
 make current
 ```
