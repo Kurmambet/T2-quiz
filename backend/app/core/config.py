@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_name: str = "T2 Quiz Rooms API"
     app_env: str = "development"
     debug: bool = False
+    app_secret_key: str
     api_v1_prefix: str = "/api/v1"
 
     database_url: str

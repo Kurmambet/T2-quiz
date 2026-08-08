@@ -20,14 +20,16 @@ npm run build
 npm run preview
 ```
 
-# правила для работы в команде
+# правила для работы в команде !!!
 
 (чтобы хаоса не было)
 
 ```bash
+make format
 make lint
 make format-check
 make test
+make check-migrations
 make check
 ```
 

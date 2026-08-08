@@ -47,14 +47,14 @@ current:
 	$(API) alembic current
 
 lint:
-	$(API) ruff check app tests
+	$(API) ruff check app tests alembic
 
 format-check:
-	$(API) ruff format --check app tests
+	$(API) ruff format --check app tests alembic
 
 format:
-	$(API) ruff format app tests
-
+	$(API) ruff format app tests alembic
+	
 test:
 	$(API) pytest -q
 
