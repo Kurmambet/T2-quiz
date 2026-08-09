@@ -72,6 +72,55 @@ type GameSession = {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
+type GamePhase =
+  | "setup"
+  | "lobby"
+  | "presentation"
+  | "question"
+  | "answers_closed"
+  | "answer_reveal"
+  | "scoreboard"
+  | "finished";
+
+const GAME_PHASE_LABELS: Record<GamePhase, string> = {
+  setup: "Настройка",
+  lobby: "Лобби",
+  presentation: "Презентация",
+  question: "Вопрос",
+  answers_closed: "Приём ответов закрыт",
+  answer_reveal: "Правильный ответ",
+  scoreboard: "Таблица результатов",
+  finished: "Квиз завершён",
+};
+
+const NEXT_GAME_PHASE: Partial<Record<GamePhase, GamePhase>> = {
+  lobby: "presentation",
+  presentation: "question",
+  question: "answers_closed",
+  answers_closed: "answer_reveal",
+  answer_reveal: "scoreboard",
+  scoreboard: "question",
+};
+
+function getGamePhase(gameSession: GameSession | null): GamePhase | null {
+  const phase = gameSession?.state.phase;
+
+  if (
+    phase === "setup" ||
+    phase === "lobby" ||
+    phase === "presentation" ||
+    phase === "question" ||
+    phase === "answers_closed" ||
+    phase === "answer_reveal" ||
+    phase === "scoreboard" ||
+    phase === "finished"
+  ) {
+    return phase;
+  }
+
+  return null;
+}
+
 async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
@@ -148,11 +197,15 @@ function App() {
         setUsername(session.participant.username);
         setParticipantSession(session);
 
-        const roomLobby = await apiRequest<RoomLobby>(
-          `/api/v1/rooms/${session.room.code}`,
-        );
+        const [roomLobby, loadedGameSession] = await Promise.all([
+          apiRequest<RoomLobby>(`/api/v1/rooms/${session.room.code}`),
+          apiRequest<GameSession>(
+            `/api/v1/rooms/${session.room.code}/game`,
+          ).catch(() => null),
+        ]);
 
         setLobby(roomLobby);
+        setGameSession(loadedGameSession);
       } catch {
         clearParticipantSession();
         setMessage("Предыдущая игровая сессия больше недоступна.");
@@ -234,7 +287,7 @@ function App() {
   const refreshRoomData = useCallback(async (): Promise<void> => {
     if (participantSession) {
       try {
-        const [session, roomLobby] = await Promise.all([
+        const [session, roomLobby, loadedGameSession] = await Promise.all([
           apiRequest<ParticipantSession>(
             `/api/v1/rooms/${participantSession.room.code}/me`,
             {
@@ -247,10 +300,14 @@ function App() {
           apiRequest<RoomLobby>(
             `/api/v1/rooms/${participantSession.room.code}`,
           ),
+          apiRequest<GameSession>(
+            `/api/v1/rooms/${participantSession.room.code}/game`,
+          ).catch(() => null),
         ]);
 
         setParticipantSession(session);
         setLobby(roomLobby);
+        setGameSession(loadedGameSession);
       } catch {
         clearActiveParticipantSession();
         setParticipantSession(null);
@@ -306,6 +363,11 @@ function App() {
     token: realtimeToken,
     onRoomChanged: refreshRoomData,
   });
+
+  const currentGamePhase = getGamePhase(gameSession);
+  const nextGamePhase = currentGamePhase
+    ? (NEXT_GAME_PHASE[currentGamePhase] ?? null)
+    : null;
 
   function clearParticipantSession() {
     clearActiveParticipantSession();
@@ -441,6 +503,12 @@ function App() {
               Код комнаты: {participantSession.room.code}
             </p>
             <p className="t2-copy">Realtime: {realtimeStatus}</p>
+            <p className="t2-copy">
+              Сцена:{" "}
+              {currentGamePhase
+                ? GAME_PHASE_LABELS[currentGamePhase]
+                : "Ожидаем настройки игры"}
+            </p>
           </article>
 
           <aside className="t2-tile t2-tile--magenta t2-span-4">
@@ -597,7 +665,63 @@ function App() {
                 Начать игру
               </button>
             ) : (
-              <p className="t2-copy">Игра уже запущена.</p>
+              <section className="t2-game-settings">
+                <p className="t2-eyebrow">Управление игрой</p>
+
+                <p className="t2-lead">
+                  Текущая сцена:{" "}
+                  {currentGamePhase
+                    ? GAME_PHASE_LABELS[currentGamePhase]
+                    : "Не определена"}
+                </p>
+
+                <p className="t2-copy">
+                  Вопрос:{" "}
+                  {typeof gameSession?.state.current_question_position ===
+                  "number"
+                    ? gameSession.state.current_question_position
+                    : 0}
+                </p>
+
+                {nextGamePhase && (
+                  <button
+                    className="t2-button t2-button--lime"
+                    disabled={isLoading}
+                    onClick={() => handleTransitionGame(nextGamePhase)}
+                    type="button"
+                  >
+                    {nextGamePhase === "presentation" && "Начать презентацию"}
+
+                    {nextGamePhase === "question" &&
+                      (currentGamePhase === "scoreboard"
+                        ? "Следующий вопрос"
+                        : "Показать вопрос")}
+
+                    {nextGamePhase === "answers_closed" &&
+                      "Закрыть приём ответов"}
+
+                    {nextGamePhase === "answer_reveal" &&
+                      "Показать правильный ответ"}
+
+                    {nextGamePhase === "scoreboard" && "Показать таблицу"}
+                  </button>
+                )}
+
+                {currentGamePhase && currentGamePhase !== "finished" && (
+                  <button
+                    className="t2-button t2-button--outline"
+                    disabled={isLoading}
+                    onClick={() => handleTransitionGame("finished")}
+                    type="button"
+                  >
+                    Завершить квиз
+                  </button>
+                )}
+
+                {currentGamePhase === "finished" && (
+                  <p className="t2-copy">Квиз завершён.</p>
+                )}
+              </section>
             )}
           </article>
 
@@ -713,6 +837,48 @@ function App() {
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Не удалось начать игру",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleTransitionGame(targetPhase: GamePhase) {
+    if (!organizerSession) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const updatedGameSession = await apiRequest<GameSession>(
+        `/api/v1/rooms/${organizerSession.roomCode}/game/transition`,
+        {
+          method: "POST",
+          headers: {
+            "X-Organizer-Token": organizerSession.organizerToken,
+          },
+          body: JSON.stringify({
+            target_phase: targetPhase,
+          }),
+        },
+      );
+
+      setGameSession(updatedGameSession);
+
+      const roomLobby = await apiRequest<RoomLobby>(
+        `/api/v1/rooms/${organizerSession.roomCode}`,
+      );
+
+      setLobby(roomLobby);
+
+      setMessage(`Сцена изменена: ${GAME_PHASE_LABELS[targetPhase]}.`);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Не удалось изменить игровую сцену",
       );
     } finally {
       setIsLoading(false);
