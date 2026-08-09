@@ -16,6 +16,11 @@ import {
   saveParticipantSession,
   type OrganizerSessionStorage,
 } from "./lib/game-session";
+import { HostRoomPage } from "./pages/HostRoomPage";
+import { JoinRoomPage } from "./pages/JoinRoomPage";
+import { PlayerRoomPage } from "./pages/PlayerRoomPage";
+import { RestoringSessionPage } from "./pages/RestoringSessionPage";
+
 import { type RealtimeRole, useRoomRealtime } from "./lib/use-room-realtime";
 import type {
   GameSession,
@@ -352,290 +357,58 @@ function App() {
   }
 
   if (isRestoringSession) {
-    return (
-      <main className="t2-page">
-        <section className="t2-bento">
-          <article className="t2-tile t2-tile--black t2-span-12">
-            <p className="t2-eyebrow">T2 Quiz Rooms</p>
-            <h1 className="t2-title">Восстанавливаем сессию</h1>
-          </article>
-        </section>
-      </main>
-    );
+    return <RestoringSessionPage />;
   }
 
   if (participantSession) {
     return (
-      <main className="t2-page">
-        <section className="t2-bento">
-          <article className="t2-tile t2-tile--white t2-span-8">
-            <p className="t2-eyebrow">Квиз-рум</p>
-            <h1 className="t2-title">{participantSession.room.title}</h1>
-
-            <p className="t2-lead">
-              Ты подключён как {participantSession.participant.username}
-            </p>
-
-            <p className="t2-copy">
-              Код комнаты: {participantSession.room.code}
-            </p>
-            <p className="t2-copy">Realtime: {realtimeStatus}</p>
-            <p className="t2-copy">
-              Сцена:{" "}
-              {currentGamePhase
-                ? GAME_PHASE_LABELS[currentGamePhase]
-                : "Ожидаем настройки игры"}
-            </p>
-          </article>
-
-          <aside className="t2-tile t2-tile--magenta t2-span-4">
-            <p className="t2-eyebrow">Статус</p>
-            <p className="t2-title t2-title--stencil">
-              {participantSession.room.status}
-            </p>
-          </aside>
-
-          <article className="t2-tile t2-tile--blue t2-span-12">
-            <p className="t2-eyebrow">Lobby</p>
-
-            <p className="t2-lead">Ожидаем, когда ведущий запустит игру.</p>
-
-            <p className="t2-copy">
-              Игроков в комнате: {lobby?.participants.length ?? 0}
-            </p>
-
-            <div className="t2-participants">
-              {lobby?.participants.map((participant) => (
-                <span className="t2-participant" key={participant.id}>
-                  {participant.username}
-                </span>
-              ))}
-            </div>
-
-            <button
-              className="t2-button t2-button--mono"
-              onClick={clearParticipantSession}
-              type="button"
-            >
-              Очистить локальную сессию
-            </button>
-          </article>
-        </section>
-      </main>
+      <PlayerRoomPage
+        participantSession={participantSession}
+        lobby={lobby}
+        realtimeStatus={realtimeStatus}
+        currentGamePhase={currentGamePhase}
+        gamePhaseLabel={
+          currentGamePhase
+            ? GAME_PHASE_LABELS[currentGamePhase]
+            : "Ожидаем настройки игры"
+        }
+        onClearSession={clearParticipantSession}
+      />
     );
   }
 
   if (organizerSession && lobby) {
-    const canStartRoom = lobby.room.status === "lobby";
-
-    const selectedTemplate = quizTemplates.find(
-      (template) => template.id === selectedTemplateId,
-    );
-
-    const hasConfiguredGame = gameSession !== null;
-
     return (
-      <main className="t2-page">
-        <section className="t2-bento">
-          <article className="t2-tile t2-tile--white t2-span-8">
-            <p className="t2-eyebrow">Панель ведущего</p>
-
-            <h1 className="t2-title">{lobby.room.title}</h1>
-
-            <p className="t2-lead">Код для подключения: {lobby.room.code}</p>
-            <p className="t2-copy">Realtime: {realtimeStatus}</p>
-            <p className="t2-copy">
-              Игроков в lobby: {lobby.participants.length}
-            </p>
-
-            {canStartRoom && (
-              <section className="t2-game-settings">
-                <p className="t2-eyebrow">Настройка игры</p>
-
-                <label className="t2-copy" htmlFor="quiz-template">
-                  Готовый квиз
-                </label>
-
-                <select
-                  id="quiz-template"
-                  onChange={(event) => {
-                    setSelectedTemplateId(event.target.value);
-                    setGameSession(null);
-                  }}
-                  value={selectedTemplateId}
-                >
-                  <option value="">Выбери квиз</option>
-
-                  {quizTemplates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.title} · {template.questions_count} вопросов
-                    </option>
-                  ))}
-                </select>
-
-                {selectedTemplate && (
-                  <p className="t2-copy">
-                    {selectedTemplate.description ??
-                      "Описание для этого квиза пока не задано."}
-                  </p>
-                )}
-
-                <label className="t2-copy" htmlFor="time-limit">
-                  Время на вопрос: {defaultTimeLimit} сек.
-                </label>
-
-                <input
-                  id="time-limit"
-                  max="600"
-                  min="5"
-                  onChange={(event) =>
-                    setDefaultTimeLimit(Number(event.target.value))
-                  }
-                  type="number"
-                  value={defaultTimeLimit}
-                />
-
-                <label className="t2-checkbox">
-                  <input
-                    checked={allowLateJoin}
-                    onChange={(event) => setAllowLateJoin(event.target.checked)}
-                    type="checkbox"
-                  />
-                  Разрешить подключение после старта
-                </label>
-
-                <label className="t2-checkbox">
-                  <input
-                    checked={showCorrectAnswer}
-                    onChange={(event) =>
-                      setShowCorrectAnswer(event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  Показывать правильный ответ после вопроса
-                </label>
-
-                <button
-                  className="t2-button t2-button--outline"
-                  disabled={isLoading || !selectedTemplateId}
-                  onClick={handleConfigureGame}
-                  type="button"
-                >
-                  Сохранить настройки
-                </button>
-
-                {hasConfiguredGame && (
-                  <p className="t2-copy">
-                    Квиз настроен: можно запускать игру.
-                  </p>
-                )}
-              </section>
-            )}
-
-            {canStartRoom ? (
-              <button
-                className="t2-button t2-button--lime"
-                disabled={isLoading || !hasConfiguredGame}
-                onClick={handleStartRoom}
-                type="button"
-              >
-                Начать игру
-              </button>
-            ) : (
-              <section className="t2-game-settings">
-                <p className="t2-eyebrow">Управление игрой</p>
-
-                <p className="t2-lead">
-                  Текущая сцена:{" "}
-                  {currentGamePhase
-                    ? GAME_PHASE_LABELS[currentGamePhase]
-                    : "Не определена"}
-                </p>
-
-                <p className="t2-copy">
-                  Вопрос:{" "}
-                  {typeof gameSession?.state.current_question_position ===
-                  "number"
-                    ? gameSession.state.current_question_position
-                    : 0}
-                </p>
-
-                {nextGamePhase && (
-                  <button
-                    className="t2-button t2-button--lime"
-                    disabled={isLoading}
-                    onClick={() => handleTransitionGame(nextGamePhase)}
-                    type="button"
-                  >
-                    {nextGamePhase === "presentation" && "Начать презентацию"}
-
-                    {nextGamePhase === "question" &&
-                      (currentGamePhase === "scoreboard"
-                        ? "Следующий вопрос"
-                        : "Показать вопрос")}
-
-                    {nextGamePhase === "answers_closed" &&
-                      "Закрыть приём ответов"}
-
-                    {nextGamePhase === "answer_reveal" &&
-                      "Показать правильный ответ"}
-
-                    {nextGamePhase === "scoreboard" && "Показать таблицу"}
-                  </button>
-                )}
-
-                {currentGamePhase && currentGamePhase !== "finished" && (
-                  <button
-                    className="t2-button t2-button--outline"
-                    disabled={isLoading}
-                    onClick={() => handleTransitionGame("finished")}
-                    type="button"
-                  >
-                    Завершить квиз
-                  </button>
-                )}
-
-                {currentGamePhase === "finished" && (
-                  <p className="t2-copy">Квиз завершён.</p>
-                )}
-              </section>
-            )}
-          </article>
-
-          <aside className="t2-tile t2-tile--magenta t2-span-4">
-            <p className="t2-eyebrow">Статус</p>
-
-            <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
-          </aside>
-
-          <article className="t2-tile t2-tile--blue t2-span-12">
-            <p className="t2-eyebrow">Участники</p>
-
-            <div className="t2-participants">
-              {lobby.participants.map((participant) => (
-                <span className="t2-participant" key={participant.id}>
-                  {participant.username}
-                </span>
-              ))}
-            </div>
-
-            <button
-              className="t2-button t2-button--mono"
-              onClick={handleClearOrganizerSession}
-              type="button"
-            >
-              Очистить сессию ведущего
-            </button>
-          </article>
-
-          {message && (
-            <aside className="t2-tile t2-tile--black t2-span-12">
-              <p className="t2-eyebrow">Статус действия</p>
-              <p className="t2-lead">{message}</p>
-            </aside>
-          )}
-        </section>
-      </main>
+      <HostRoomPage
+        allowLateJoin={allowLateJoin}
+        currentGamePhase={currentGamePhase}
+        defaultTimeLimit={defaultTimeLimit}
+        gamePhaseLabel={
+          currentGamePhase
+            ? GAME_PHASE_LABELS[currentGamePhase]
+            : "Не определена"
+        }
+        gameSession={gameSession}
+        isLoading={isLoading}
+        lobby={lobby}
+        message={message}
+        nextGamePhase={nextGamePhase}
+        quizTemplates={quizTemplates}
+        realtimeStatus={realtimeStatus}
+        selectedTemplateId={selectedTemplateId}
+        showCorrectAnswer={showCorrectAnswer}
+        onAllowLateJoinChange={setAllowLateJoin}
+        onClearSession={handleClearOrganizerSession}
+        onConfigureGame={handleConfigureGame}
+        onDefaultTimeLimitChange={setDefaultTimeLimit}
+        onSelectedTemplateIdChange={(templateId) => {
+          setSelectedTemplateId(templateId);
+          setGameSession(null);
+        }}
+        onShowCorrectAnswerChange={setShowCorrectAnswer}
+        onStartRoom={handleStartRoom}
+        onTransitionGame={handleTransitionGame}
+      />
     );
   }
 
@@ -770,85 +543,18 @@ function App() {
   }
 
   return (
-    <main className="t2-page">
-      <section className="t2-bento">
-        <article className="t2-tile t2-tile--white t2-span-6">
-          <p className="t2-eyebrow">Для ведущего</p>
-          <h1 className="t2-title">Создать рум</h1>
-
-          <form onSubmit={handleCreateRoom}>
-            <label className="t2-copy" htmlFor="room-title">
-              Название квиза
-            </label>
-
-            <input
-              id="room-title"
-              maxLength={120}
-              onChange={(event) => setRoomTitle(event.target.value)}
-              placeholder="Например, Квиз команды T2"
-              required
-              value={roomTitle}
-            />
-
-            <button
-              className="t2-button t2-button--lime"
-              disabled={isLoading}
-              type="submit"
-            >
-              Создать игру
-            </button>
-          </form>
-        </article>
-
-        <article className="t2-tile t2-tile--blue t2-span-6">
-          <p className="t2-eyebrow">Для участника</p>
-          <h2 className="t2-title">Войти в рум</h2>
-
-          <form onSubmit={handleJoinRoom}>
-            <label className="t2-copy" htmlFor="room-code">
-              Код комнаты
-            </label>
-
-            <input
-              id="room-code"
-              maxLength={6}
-              onChange={(event) => setRoomCode(event.target.value)}
-              placeholder="ABC123"
-              required
-              value={roomCode}
-            />
-
-            <label className="t2-copy" htmlFor="username">
-              Твоё имя
-            </label>
-
-            <input
-              id="username"
-              maxLength={40}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="Алексей"
-              required
-              value={username}
-            />
-
-            <button
-              className="t2-button t2-button--mono"
-              disabled={isLoading}
-              type="submit"
-            >
-              Подключиться
-            </button>
-          </form>
-        </article>
-
-        {message && (
-          <aside className="t2-tile t2-tile--magenta t2-span-12">
-            <p className="t2-eyebrow">Статус</p>
-            <p className="t2-lead">{message}</p>
-          </aside>
-        )}
-      </section>
-    </main>
+    <JoinRoomPage
+      isLoading={isLoading}
+      message={message}
+      roomCode={roomCode}
+      roomTitle={roomTitle}
+      username={username}
+      onCreateRoom={handleCreateRoom}
+      onJoinRoom={handleJoinRoom}
+      onRoomCodeChange={setRoomCode}
+      onRoomTitleChange={setRoomTitle}
+      onUsernameChange={setUsername}
+    />
   );
 }
 
