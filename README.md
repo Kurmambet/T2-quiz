@@ -75,14 +75,22 @@ sed -i 's#^sqlalchemy.url =.*#sqlalchemy.url =#' alembic.ini
 
 make check-migrations
 
-# Сгенерировать миграцию
+# ШАГ 1 Сгенерировать миграцию
 
 make migration message="create rooms table"
 make migration message="add quiz templates and game sessions"
 
+docker compose -f compose.dev.yml exec api \
+  uv run --no-sync ruff check --fix alembic/versions
+
+docker compose -f compose.dev.yml exec api \
+  uv run --no-sync ruff format alembic/versions
+
 make upgrade
 
 # Убедиться в текущей версии
-
+make upgrade
+make check-migrations
+make check
 make current
 ```
