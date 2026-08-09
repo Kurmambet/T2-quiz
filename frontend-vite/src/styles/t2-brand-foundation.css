@@ -421,10 +421,58 @@ select option {
 }
 
 .t2-question-option {
+  display: block;
+  width: 100%;
   min-width: 0;
   padding: var(--t2-pad);
+  border: 2px solid transparent;
   background: var(--t2-black);
   color: var(--t2-white);
+  cursor: pointer;
+  text-align: left;
+}
+
+.t2-question-option:hover:not(:disabled) {
+  border-color: var(--t2-white);
+  transform: translateY(-2px);
+}
+
+.t2-question-option--selected {
+  border-color: var(--t2-magenta);
+  background: var(--t2-magenta);
+  color: var(--t2-black);
+}
+
+.t2-question-option--selected .t2-eyebrow {
+  color: var(--t2-black);
+}
+
+.t2-question-option--submitted {
+  border-color: var(--t2-electric-blue);
+  background: var(--t2-electric-blue);
+  color: var(--t2-black);
+}
+
+.t2-question-option--submitted .t2-eyebrow {
+  color: var(--t2-black);
+}
+
+.t2-question-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.t2-question-option .t2-eyebrow,
+.t2-question-option .t2-lead {
+  display: block;
+}
+
+.t2-question-option .t2-eyebrow {
+  color: var(--t2-lime);
+}
+
+.t2-question-option .t2-lead {
+  margin-top: 0;
 }
 
 .t2-question-option .t2-eyebrow {

@@ -73,3 +73,9 @@ export type CurrentParticipantQuestion = {
   question_deadline_at: string | null;
   question: ParticipantQuestion;
 };
+export type ParticipantAnswerSubmitted = {
+  id: string;
+  quiz_question_id: string;
+  selected_option_id: string;
+  submitted_at: string;
+};
