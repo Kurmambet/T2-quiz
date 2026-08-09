@@ -1,23 +1,6 @@
 services:
-  api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.dev
-    container_name: t2-quiz-api-dev
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
   db:
     image: postgres:16-alpine
-    container_name: t2-quiz-db-dev
     environment:
       POSTGRES_DB: t2_quiz
       POSTGRES_USER: t2_quiz
@@ -33,17 +16,59 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: t2-quiz-redis-dev
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    # ports:
-    #   - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 5s
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready').read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
 volumes:
   postgres_data:

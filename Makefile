@@ -1,7 +1,7 @@
 COMPOSE = docker compose -f compose.dev.yml
 API = $(COMPOSE) exec api uv run --no-sync
 
-.PHONY: up down build logs ps shell health db-shell redis-shell migration check-migrations upgrade downgrade current lint format-check format test check
+.PHONY: up down build rebuild logs logs-api ps shell health db-shell redis-shell migration check-migrations upgrade downgrade current lint format-check format test check migrate
 
 up:
 	$(COMPOSE) up --build
@@ -12,8 +12,14 @@ down:
 build:
 	$(COMPOSE) build
 
+rebuild:
+	$(COMPOSE) build --no-cache
+
 logs:
 	$(COMPOSE) logs -f
+
+logs-api:
+	$(COMPOSE) logs -f api
 
 ps:
 	$(COMPOSE) ps
@@ -33,6 +39,9 @@ redis-shell:
 migration:
 	@test -n "$(message)" || (echo 'Использование: make migration message="create rooms"'; exit 1)
 	$(API) alembic revision --autogenerate -m "$(message)"
+
+migrate:
+	docker compose -f compose.dev.yml run --rm migrate
 
 check-migrations:
 	$(API) alembic check
