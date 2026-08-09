@@ -55,3 +55,17 @@ async def publish_room_event(
         room_events_channel(room_code),
         json.dumps(event, ensure_ascii=False, separators=(",", ":")),
     )
+
+
+def build_room_answer_submitted_event(
+    room_code: str,
+    question_id: str,
+) -> dict[str, object]:
+    return {
+        "type": "room.answer_submitted",
+        "room_code": normalize_room_code(room_code),
+        "occurred_at": datetime.now(UTC).isoformat(),
+        "data": {
+            "question_id": question_id,
+        },
+    }

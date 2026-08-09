@@ -25,3 +25,14 @@ class CurrentParticipantQuestionRead(BaseModel):
     phase: GamePhase
     question_deadline_at: datetime | None
     question: ParticipantQuestionRead
+
+
+class ParticipantAnswerSubmit(BaseModel):
+    selected_option_id: uuid.UUID
+
+
+class ParticipantAnswerSubmitted(BaseModel):
+    id: uuid.UUID
+    quiz_question_id: uuid.UUID
+    selected_option_id: uuid.UUID
+    submitted_at: datetime

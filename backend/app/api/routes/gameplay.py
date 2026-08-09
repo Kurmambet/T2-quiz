@@ -1,13 +1,29 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
+from app.realtime.events import (
+    build_room_answer_submitted_event,
+    publish_room_event,
+)
+from app.realtime.redis import redis_client
 from app.schemas.gameplay import (
     CurrentParticipantQuestionRead,
+    ParticipantAnswerSubmit,
+    ParticipantAnswerSubmitted,
     ParticipantQuestionOptionRead,
     ParticipantQuestionRead,
+)
+from app.services.answers import (
+    AnswerAlreadySubmittedError,
+    AnswerSubmissionNotAllowedError,
+    QuestionDeadlineExpiredError,
+    SelectedOptionNotAllowedError,
+    submit_current_question_answer,
 )
 from app.services.game_sessions import GameSessionNotFoundError
 from app.services.gameplay import (
@@ -16,6 +32,8 @@ from app.services.gameplay import (
 )
 from app.services.participants import ParticipantSessionNotFoundError
 from app.services.rooms import RoomNotFoundError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/rooms",
@@ -93,4 +111,86 @@ async def get_current_question_endpoint(
                 for option in options
             ],
         ),
+    )
+
+
+@router.post(
+    "/{code}/game/current-question/answer",
+    response_model=ParticipantAnswerSubmitted,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_current_question_answer_endpoint(
+    code: str,
+    payload: ParticipantAnswerSubmit,
+    session: DbSession,
+    participant_token: ParticipantToken = None,
+) -> ParticipantAnswerSubmitted:
+    if participant_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Participant token is required",
+        )
+
+    try:
+        answer = await submit_current_question_answer(
+            session=session,
+            room_code=code,
+            participant_token=participant_token,
+            payload=payload,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except ParticipantSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid participant token",
+        ) from error
+    except GameSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Game is not configured",
+        ) from error
+    except AnswerSubmissionNotAllowedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Answers are not accepted in this game phase",
+        ) from error
+    except QuestionDeadlineExpiredError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Question deadline has expired",
+        ) from error
+    except SelectedOptionNotAllowedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Selected option does not belong to the current question",
+        ) from error
+    except AnswerAlreadySubmittedError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Answer has already been submitted for this question",
+        ) from error
+
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_room_answer_submitted_event(
+                room_code=code,
+                question_id=str(answer.quiz_question_id),
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Answer was persisted but realtime event was not published",
+        )
+
+    return ParticipantAnswerSubmitted(
+        id=answer.id,
+        quiz_question_id=answer.quiz_question_id,
+        selected_option_id=answer.selected_option_id,
+        submitted_at=answer.submitted_at,
     )

@@ -183,9 +183,11 @@ async def transition_game_session(
         raise GameSessionNotActiveError
 
     game_session = await session.scalar(
-        select(GameSession).where(
+        select(GameSession)
+        .where(
             GameSession.room_id == room.id,
         )
+        .with_for_update()
     )
 
     if game_session is None or game_session.quiz_template_id is None:
