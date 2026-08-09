@@ -1,9 +1,16 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
+from app.realtime.events import (
+    build_room_state_changed_event,
+    publish_room_event,
+)
+from app.realtime.redis import redis_client
 from app.schemas.lobby import RoomLobby
 from app.schemas.participant import (
     ParticipantJoin,
@@ -12,6 +19,7 @@ from app.schemas.participant import (
     ParticipantSession,
 )
 from app.schemas.room import RoomCreate, RoomCreated, RoomRead
+from app.services.game_sessions import get_game_session
 from app.services.participants import (
     ParticipantSessionNotFoundError,
     RoomNotJoinableError,
@@ -48,6 +56,8 @@ OrganizerToken = Annotated[
     str | None,
     Header(alias="X-Organizer-Token"),
 ]
+
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -113,6 +123,26 @@ async def start_room_endpoint(
             status_code=status.HTTP_409_CONFLICT,
             detail="Room can only be started from lobby",
         ) from error
+
+    game_session = await get_game_session(
+        session=session,
+        room_code=code,
+    )
+
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_room_state_changed_event(
+                room_code=code,
+                state=game_session.state,
+                reason="room_started",
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Room start was persisted but realtime event was not published",
+        )
 
     return RoomRead.model_validate(room)
 

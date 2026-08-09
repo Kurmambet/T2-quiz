@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     redis_url: str
 
+    realtime_presence_ttl_seconds: int = 45
+    realtime_heartbeat_interval_seconds: int = 15
+
     cors_origins: list[str] = []
 
     model_config = SettingsConfigDict(

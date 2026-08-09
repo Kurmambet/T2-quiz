@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
   clearActiveOrganizerSession,
   clearActiveParticipantSession,
@@ -8,6 +8,7 @@ import {
   saveParticipantSession,
   type OrganizerSessionStorage,
 } from "./lib/game-session";
+import { useRoomRealtime, type RealtimeRole } from "./lib/use-room-realtime";
 
 type Room = {
   id: string;
@@ -230,6 +231,82 @@ function App() {
     void loadQuizTemplates();
   }, []);
 
+  const refreshRoomData = useCallback(async (): Promise<void> => {
+    if (participantSession) {
+      try {
+        const [session, roomLobby] = await Promise.all([
+          apiRequest<ParticipantSession>(
+            `/api/v1/rooms/${participantSession.room.code}/me`,
+            {
+              headers: {
+                "X-Participant-Token":
+                  getActiveParticipantSession()?.participantToken ?? "",
+              },
+            },
+          ),
+          apiRequest<RoomLobby>(
+            `/api/v1/rooms/${participantSession.room.code}`,
+          ),
+        ]);
+
+        setParticipantSession(session);
+        setLobby(roomLobby);
+      } catch {
+        clearActiveParticipantSession();
+        setParticipantSession(null);
+        setLobby(null);
+        setMessage("Игровая сессия больше недоступна.");
+      }
+
+      return;
+    }
+
+    if (organizerSession) {
+      try {
+        const roomLobby = await apiRequest<RoomLobby>(
+          `/api/v1/rooms/${organizerSession.roomCode}`,
+        );
+
+        setLobby(roomLobby);
+
+        try {
+          const loadedGameSession = await apiRequest<GameSession>(
+            `/api/v1/rooms/${organizerSession.roomCode}/game`,
+          );
+
+          setGameSession(loadedGameSession);
+        } catch {
+          setGameSession(null);
+        }
+      } catch {
+        clearActiveOrganizerSession();
+        setOrganizerSession(null);
+        setLobby(null);
+        setMessage("Сессия ведущего больше недоступна.");
+      }
+    }
+  }, [organizerSession, participantSession]);
+
+  const realtimeRole: RealtimeRole | null = participantSession
+    ? "participant"
+    : organizerSession
+      ? "organizer"
+      : null;
+
+  const realtimeRoomCode =
+    participantSession?.room.code ?? organizerSession?.roomCode ?? null;
+
+  const realtimeToken = participantSession
+    ? (getActiveParticipantSession()?.participantToken ?? null)
+    : (organizerSession?.organizerToken ?? null);
+
+  const realtimeStatus = useRoomRealtime({
+    roomCode: realtimeRoomCode,
+    role: realtimeRole,
+    token: realtimeToken,
+    onRoomChanged: refreshRoomData,
+  });
+
   function clearParticipantSession() {
     clearActiveParticipantSession();
 
@@ -363,6 +440,7 @@ function App() {
             <p className="t2-copy">
               Код комнаты: {participantSession.room.code}
             </p>
+            <p className="t2-copy">Realtime: {realtimeStatus}</p>
           </article>
 
           <aside className="t2-tile t2-tile--magenta t2-span-4">
@@ -420,7 +498,7 @@ function App() {
             <h1 className="t2-title">{lobby.room.title}</h1>
 
             <p className="t2-lead">Код для подключения: {lobby.room.code}</p>
-
+            <p className="t2-copy">Realtime: {realtimeStatus}</p>
             <p className="t2-copy">
               Игроков в lobby: {lobby.participants.length}
             </p>
@@ -630,7 +708,7 @@ function App() {
       setGameSession(startedGame);
 
       setMessage(
-        "Игра началась. Участники увидят новый статус после обновления.",
+        "Игра началась. Подключённые участники получат обновление автоматически.",
       );
     } catch (error) {
       setMessage(

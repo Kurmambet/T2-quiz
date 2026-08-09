@@ -73,6 +73,7 @@ async def configure_quiz_game(
             state={
                 "phase": "setup",
                 "current_question_position": 0,
+                "question_deadline_at": None,
             },
         )
 
@@ -84,6 +85,7 @@ async def configure_quiz_game(
         game_session.state = {
             "phase": "setup",
             "current_question_position": 0,
+            "question_deadline_at": None,
         }
 
     await session.commit()

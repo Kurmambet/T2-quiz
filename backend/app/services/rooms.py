@@ -117,8 +117,9 @@ async def start_room(
     game_session.started_at = now
     game_session.state = {
         **game_session.state,
-        "phase": "active",
-        "current_question_position": 1,
+        "phase": "lobby",
+        "current_question_position": 0,
+        "question_deadline_at": None,
     }
 
     await session.commit()

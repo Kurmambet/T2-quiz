@@ -1,9 +1,16 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
+from app.realtime.events import (
+    build_room_state_changed_event,
+    publish_room_event,
+)
+from app.realtime.redis import redis_client
 from app.schemas.game_session import (
     GameSessionConfigure,
     GameSessionRead,
@@ -19,6 +26,8 @@ from app.services.rooms import (
     OrganizerTokenInvalidError,
     RoomNotFoundError,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/rooms",
@@ -106,5 +115,20 @@ async def configure_quiz_game_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Published quiz template not found",
         ) from error
+
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_room_state_changed_event(
+                room_code=code,
+                state=game_session.state,
+                reason="game_configured",
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Game configuration was persisted but realtime event was not published",
+        )
 
     return GameSessionRead.model_validate(game_session)
