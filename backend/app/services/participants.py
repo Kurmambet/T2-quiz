@@ -1,19 +1,13 @@
-from typing import Final
-
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.game_session import GameSession
 from app.models.participant import Participant
 from app.models.room import Room, RoomStatus
 from app.schemas.participant import ParticipantJoin
 from app.services.rooms import get_room_by_code
 from app.services.tokens import generate_session_token, hash_session_token
-
-JOINABLE_ROOM_STATUSES: Final[set[str]] = {
-    RoomStatus.LOBBY.value,
-    RoomStatus.ACTIVE.value,
-}
 
 
 class RoomNotJoinableError(Exception):
@@ -38,8 +32,10 @@ async def join_room(
         room_code=room_code,
     )
 
-    if room.status not in JOINABLE_ROOM_STATUSES:
-        raise RoomNotJoinableError
+    await _ensure_room_is_joinable(
+        session=session,
+        room=room,
+    )
 
     participant_token = generate_session_token()
 
@@ -106,3 +102,31 @@ async def get_room_lobby(
     )
 
     return room, participants
+
+
+async def _ensure_room_is_joinable(
+    session: AsyncSession,
+    room: Room,
+) -> None:
+    if room.status == RoomStatus.LOBBY.value:
+        return
+
+    if room.status != RoomStatus.ACTIVE.value:
+        raise RoomNotJoinableError
+
+    game_session = await session.scalar(
+        select(GameSession).where(
+            GameSession.room_id == room.id,
+        )
+    )
+
+    if game_session is None:
+        raise RoomNotJoinableError
+
+    allow_late_join = game_session.settings.get(
+        "allow_late_join",
+        True,
+    )
+
+    if allow_late_join is not True:
+        raise RoomNotJoinableError

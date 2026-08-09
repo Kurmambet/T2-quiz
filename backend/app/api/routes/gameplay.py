@@ -14,6 +14,8 @@ from app.realtime.redis import redis_client
 from app.schemas.gameplay import (
     CurrentParticipantQuestionRead,
     CurrentQuestionRevealRead,
+    LeaderboardEntryRead,
+    LeaderboardRead,
     ParticipantAnswerSubmit,
     ParticipantAnswerSubmitted,
     ParticipantQuestionOptionRead,
@@ -31,12 +33,16 @@ from app.services.gameplay import (
     CurrentQuestionNotAvailableError,
     get_current_question_for_participant,
 )
+from app.services.leaderboard import (
+    LeaderboardNotAvailableError,
+    get_leaderboard,
+)
 from app.services.participants import ParticipantSessionNotFoundError
 from app.services.reveals import (
     CurrentQuestionRevealNotAvailableError,
     get_current_question_reveal_for_participant,
 )
-from app.services.rooms import RoomNotFoundError
+from app.services.rooms import OrganizerTokenInvalidError, RoomNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +59,11 @@ DbSession = Annotated[
 ParticipantToken = Annotated[
     str | None,
     Header(alias="X-Participant-Token"),
+]
+
+OrganizerToken = Annotated[
+    str | None,
+    Header(alias="X-Organizer-Token"),
 ]
 
 
@@ -264,4 +275,67 @@ async def get_current_question_reveal_endpoint(
         selected_option_id=answer.selected_option_id if answer else None,
         is_correct=answer.is_correct if answer else None,
         points_awarded=answer.points_awarded if answer else None,
+    )
+
+
+@router.get(
+    "/{code}/game/leaderboard",
+    response_model=LeaderboardRead,
+)
+async def get_leaderboard_endpoint(
+    code: str,
+    session: DbSession,
+    organizer_token: OrganizerToken = None,
+    participant_token: ParticipantToken = None,
+) -> LeaderboardRead:
+    if organizer_token is None and participant_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Organizer or participant token is required",
+        )
+
+    try:
+        phase, entries = await get_leaderboard(
+            session=session,
+            room_code=code,
+            organizer_token=organizer_token,
+            participant_token=participant_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except (OrganizerTokenInvalidError, ParticipantSessionNotFoundError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid room session token",
+        ) from error
+    except GameSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Game is not configured",
+        ) from error
+    except LeaderboardNotAvailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Leaderboard is not available in this game phase",
+        ) from error
+
+    return LeaderboardRead(
+        phase=phase,
+        entries=[
+            LeaderboardEntryRead(
+                participant_id=participant_id,
+                username=username,
+                total_points=total_points,
+                answered_questions=answered_questions,
+            )
+            for (
+                participant_id,
+                username,
+                total_points,
+                answered_questions,
+            ) in entries
+        ],
     )

@@ -3,6 +3,7 @@ import type { RealtimeConnectionStatus } from "../lib/use-room-realtime";
 import type { ParticipantSession, RoomLobby } from "../types/api";
 import { PlayerQuestionScene } from "../components/player/PlayerQuestionScene";
 import { PlayerAnswerReveal } from "../components/player/PlayerAnswerReveal";
+import { LeaderboardScene } from "../components/shared/LeaderboardScene";
 
 type PlayerRoomPageProps = {
   participantSession: ParticipantSession;
@@ -62,6 +63,12 @@ export function PlayerRoomPage({
         <PlayerAnswerReveal
           currentGamePhase={currentGamePhase}
           participantToken={participantToken}
+          roomCode={participantSession.room.code}
+        />
+
+        <LeaderboardScene
+          currentGamePhase={currentGamePhase}
+          participantToken={participantToken ?? undefined}
           roomCode={participantSession.room.code}
         />
 

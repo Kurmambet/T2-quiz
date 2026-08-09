@@ -87,3 +87,15 @@ export type CurrentQuestionReveal = {
   is_correct: boolean | null;
   points_awarded: number | null;
 };
+
+export type LeaderboardEntry = {
+  participant_id: string;
+  username: string;
+  total_points: number;
+  answered_questions: number;
+};
+
+export type Leaderboard = {
+  phase: string;
+  entries: LeaderboardEntry[];
+};

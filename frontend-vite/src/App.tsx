@@ -394,6 +394,7 @@ function App() {
         gameSession={gameSession}
         isLoading={isLoading}
         lobby={lobby}
+        organizerToken={organizerSession.organizerToken}
         message={message}
         nextGamePhase={nextGamePhase}
         quizTemplates={quizTemplates}

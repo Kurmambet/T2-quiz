@@ -45,3 +45,15 @@ class CurrentQuestionRevealRead(BaseModel):
     selected_option_id: uuid.UUID | None
     is_correct: bool | None
     points_awarded: int | None
+
+
+class LeaderboardEntryRead(BaseModel):
+    participant_id: uuid.UUID
+    username: str
+    total_points: int
+    answered_questions: int
+
+
+class LeaderboardRead(BaseModel):
+    phase: GamePhase
+    entries: list[LeaderboardEntryRead]
