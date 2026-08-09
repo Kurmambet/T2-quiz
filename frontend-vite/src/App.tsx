@@ -1,4 +1,12 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+
+import { apiRequest } from "./api/client";
+import {
+  GAME_PHASE_LABELS,
+  getGamePhase,
+  NEXT_GAME_PHASE,
+  type GamePhase,
+} from "./lib/game-phase";
 import {
   clearActiveOrganizerSession,
   clearActiveParticipantSession,
@@ -8,147 +16,16 @@ import {
   saveParticipantSession,
   type OrganizerSessionStorage,
 } from "./lib/game-session";
-import { useRoomRealtime, type RealtimeRole } from "./lib/use-room-realtime";
-
-type Room = {
-  id: string;
-  code: string;
-  title: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-type RoomCreated = Room & {
-  organizer_token: string;
-};
-
-type Participant = {
-  id: string;
-  room_id: string;
-  username: string;
-  joined_at: string;
-};
-
-type ParticipantJoined = Participant & {
-  participant_token: string;
-};
-
-type ParticipantSession = {
-  room: Room;
-  participant: Participant;
-};
-
-type RoomLobby = {
-  room: Room;
-  participants: Participant[];
-};
-
-type ApiError = {
-  detail?: string;
-};
-
-type QuizTemplate = {
-  id: string;
-  title: string;
-  description: string | null;
-  is_published: boolean;
-  created_at: string;
-  questions_count: number;
-};
-
-type GameSession = {
-  id: string;
-  room_id: string;
-  game_type: string;
-  quiz_template_id: string | null;
-  settings: Record<string, unknown>;
-  state: Record<string, unknown>;
-  created_at: string;
-  started_at: string | null;
-  finished_at: string | null;
-};
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
-
-type GamePhase =
-  | "setup"
-  | "lobby"
-  | "presentation"
-  | "question"
-  | "answers_closed"
-  | "answer_reveal"
-  | "scoreboard"
-  | "finished";
-
-const GAME_PHASE_LABELS: Record<GamePhase, string> = {
-  setup: "Настройка",
-  lobby: "Лобби",
-  presentation: "Презентация",
-  question: "Вопрос",
-  answers_closed: "Приём ответов закрыт",
-  answer_reveal: "Правильный ответ",
-  scoreboard: "Таблица результатов",
-  finished: "Квиз завершён",
-};
-
-const NEXT_GAME_PHASE: Partial<Record<GamePhase, GamePhase>> = {
-  lobby: "presentation",
-  presentation: "question",
-  question: "answers_closed",
-  answers_closed: "answer_reveal",
-  answer_reveal: "scoreboard",
-  scoreboard: "question",
-};
-
-function getGamePhase(gameSession: GameSession | null): GamePhase | null {
-  const phase = gameSession?.state.phase;
-
-  if (
-    phase === "setup" ||
-    phase === "lobby" ||
-    phase === "presentation" ||
-    phase === "question" ||
-    phase === "answers_closed" ||
-    phase === "answer_reveal" ||
-    phase === "scoreboard" ||
-    phase === "finished"
-  ) {
-    return phase;
-  }
-
-  return null;
-}
-
-async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      "Content-Type": "application/json",
-    },
-  });
-
-  const data: unknown = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const detail =
-      typeof data === "object" &&
-      data !== null &&
-      "detail" in data &&
-      typeof (data as ApiError).detail === "string"
-        ? (data as ApiError).detail
-        : "Не удалось выполнить запрос";
-
-    throw new Error(detail);
-  }
-
-  return data as T;
-}
+import { type RealtimeRole, useRoomRealtime } from "./lib/use-room-realtime";
+import type {
+  GameSession,
+  ParticipantJoined,
+  ParticipantSession,
+  QuizTemplate,
+  Room,
+  RoomCreated,
+  RoomLobby,
+} from "./types/api";
 
 function App() {
   const [roomTitle, setRoomTitle] = useState("");
