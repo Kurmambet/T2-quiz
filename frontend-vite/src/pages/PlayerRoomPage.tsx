@@ -1,9 +1,11 @@
 import type { GamePhase } from "../lib/game-phase";
 import type { RealtimeConnectionStatus } from "../lib/use-room-realtime";
 import type { ParticipantSession, RoomLobby } from "../types/api";
+import { PlayerQuestionScene } from "../components/player/PlayerQuestionScene";
 
 type PlayerRoomPageProps = {
   participantSession: ParticipantSession;
+  participantToken: string | null;
   lobby: RoomLobby | null;
   realtimeStatus: RealtimeConnectionStatus;
   currentGamePhase: GamePhase | null;
@@ -13,6 +15,7 @@ type PlayerRoomPageProps = {
 
 export function PlayerRoomPage({
   participantSession,
+  participantToken,
   lobby,
   realtimeStatus,
   currentGamePhase,
@@ -48,6 +51,12 @@ export function PlayerRoomPage({
             {participantSession.room.status}
           </p>
         </aside>
+
+        <PlayerQuestionScene
+          currentGamePhase={currentGamePhase}
+          participantToken={participantToken}
+          roomCode={participantSession.room.code}
+        />
 
         <article className="t2-tile t2-tile--blue t2-span-12">
           <p className="t2-eyebrow">Lobby</p>

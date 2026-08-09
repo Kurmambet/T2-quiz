@@ -52,3 +52,24 @@ export type GameSession = {
   started_at: string | null;
   finished_at: string | null;
 };
+
+export type ParticipantQuestionOption = {
+  id: string;
+  position: number;
+  content: string;
+};
+
+export type ParticipantQuestion = {
+  id: string;
+  position: number;
+  content: string;
+  time_limit_seconds: number;
+  points: number;
+  options: ParticipantQuestionOption[];
+};
+
+export type CurrentParticipantQuestion = {
+  phase: string;
+  question_deadline_at: string | null;
+  question: ParticipantQuestion;
+};

@@ -78,7 +78,6 @@ export function useRoomRealtime({
 
   useEffect(() => {
     if (!roomCode || !role || !token) {
-      setConnectionStatus("idle");
       return;
     }
 
@@ -186,6 +185,10 @@ export function useRoomRealtime({
       socket?.close(1000);
     };
   }, [roomCode, role, token]);
+
+  if (!roomCode || !role || !token) {
+    return "idle";
+  }
 
   return connectionStatus;
 }

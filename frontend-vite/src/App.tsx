@@ -364,6 +364,9 @@ function App() {
     return (
       <PlayerRoomPage
         participantSession={participantSession}
+        participantToken={
+          getActiveParticipantSession()?.participantToken ?? null
+        }
         lobby={lobby}
         realtimeStatus={realtimeStatus}
         currentGamePhase={currentGamePhase}
