@@ -1,12 +1,23 @@
 import uuid
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class GamePhase(StrEnum):
+    SETUP = "setup"
+    LOBBY = "lobby"
+    PRESENTATION = "presentation"
+    QUESTION = "question"
+    ANSWERS_CLOSED = "answers_closed"
+    ANSWER_REVEAL = "answer_reveal"
+    SCOREBOARD = "scoreboard"
+    FINISHED = "finished"
+
+
 class GameSessionConfigure(BaseModel):
     quiz_template_id: uuid.UUID
-
     settings: dict[str, object] = Field(
         default_factory=dict,
         examples=[
@@ -17,6 +28,10 @@ class GameSessionConfigure(BaseModel):
             }
         ],
     )
+
+
+class GameSessionTransition(BaseModel):
+    target_phase: GamePhase
 
 
 class GameSessionRead(BaseModel):
