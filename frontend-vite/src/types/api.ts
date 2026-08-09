@@ -79,3 +79,11 @@ export type ParticipantAnswerSubmitted = {
   selected_option_id: string;
   submitted_at: string;
 };
+export type CurrentQuestionReveal = {
+  question_id: string;
+  correct_option_id: string | null;
+  correct_option_content: string | null;
+  selected_option_id: string | null;
+  is_correct: boolean | null;
+  points_awarded: number | null;
+};

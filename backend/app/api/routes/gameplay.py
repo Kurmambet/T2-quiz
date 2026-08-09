@@ -13,6 +13,7 @@ from app.realtime.events import (
 from app.realtime.redis import redis_client
 from app.schemas.gameplay import (
     CurrentParticipantQuestionRead,
+    CurrentQuestionRevealRead,
     ParticipantAnswerSubmit,
     ParticipantAnswerSubmitted,
     ParticipantQuestionOptionRead,
@@ -31,6 +32,10 @@ from app.services.gameplay import (
     get_current_question_for_participant,
 )
 from app.services.participants import ParticipantSessionNotFoundError
+from app.services.reveals import (
+    CurrentQuestionRevealNotAvailableError,
+    get_current_question_reveal_for_participant,
+)
 from app.services.rooms import RoomNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -193,4 +198,70 @@ async def submit_current_question_answer_endpoint(
         quiz_question_id=answer.quiz_question_id,
         selected_option_id=answer.selected_option_id,
         submitted_at=answer.submitted_at,
+    )
+
+
+@router.get(
+    "/{code}/game/current-question/reveal",
+    response_model=CurrentQuestionRevealRead,
+)
+async def get_current_question_reveal_endpoint(
+    code: str,
+    session: DbSession,
+    participant_token: ParticipantToken = None,
+) -> CurrentQuestionRevealRead:
+    if participant_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Participant token is required",
+        )
+
+    try:
+        (
+            question,
+            correct_option,
+            answer,
+        ) = await get_current_question_reveal_for_participant(
+            session=session,
+            room_code=code,
+            participant_token=participant_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except ParticipantSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid participant token",
+        ) from error
+    except GameSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Game is not configured",
+        ) from error
+    except CurrentQuestionRevealNotAvailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Answer reveal is not available in this game phase",
+        ) from error
+
+    if correct_option is None:
+        return CurrentQuestionRevealRead(
+            question_id=question.id,
+            correct_option_id=None,
+            correct_option_content=None,
+            selected_option_id=None,
+            is_correct=None,
+            points_awarded=None,
+        )
+
+    return CurrentQuestionRevealRead(
+        question_id=question.id,
+        correct_option_id=correct_option.id,
+        correct_option_content=correct_option.content,
+        selected_option_id=answer.selected_option_id if answer else None,
+        is_correct=answer.is_correct if answer else None,
+        points_awarded=answer.points_awarded if answer else None,
     )
