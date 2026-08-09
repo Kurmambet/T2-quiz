@@ -32,6 +32,20 @@ def build_room_state_changed_event(
     }
 
 
+def build_room_lobby_changed_event(
+    room_code: str,
+    reason: str,
+) -> dict[str, object]:
+    return {
+        "type": "room.lobby_changed",
+        "room_code": normalize_room_code(room_code),
+        "occurred_at": datetime.now(UTC).isoformat(),
+        "data": {
+            "reason": reason,
+        },
+    }
+
+
 async def publish_room_event(
     redis: Redis,
     room_code: str,

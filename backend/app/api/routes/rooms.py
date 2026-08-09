@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.realtime.events import (
+    build_room_lobby_changed_event,
     build_room_state_changed_event,
     publish_room_event,
 )
@@ -244,6 +245,19 @@ async def join_room_endpoint(
             detail="Username is already taken in this room",
         ) from error
 
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_room_lobby_changed_event(
+                room_code=code,
+                reason="participant_joined",
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Participant join was persisted but realtime event was not published",
+        )
     participant_data = ParticipantRead.model_validate(participant)
 
     return ParticipantJoined(
