@@ -94,7 +94,7 @@ export function PlayerRoomPage({
             onClick={onClearSession}
             type="button"
           >
-            Очистить локальную сессию
+            Выйти из комнаты
           </button>
         </article>
       </section>

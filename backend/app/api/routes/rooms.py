@@ -31,6 +31,7 @@ from app.services.participants import (
     get_participant_session,
     get_room_lobby,
     join_room,
+    leave_room,
     remove_participant,
 )
 from app.services.rooms import (
@@ -267,6 +268,57 @@ async def join_room_endpoint(
     return ParticipantJoined(
         **participant_data.model_dump(),
         participant_token=participant_token,
+    )
+
+
+@router.delete(
+    "/{code}/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def leave_room_endpoint(
+    code: str,
+    session: DbSession,
+    participant_token: ParticipantToken = None,
+) -> Response:
+    if participant_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Participant token is required",
+        )
+
+    try:
+        participant = await leave_room(
+            session=session,
+            room_code=code,
+            participant_token=participant_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except ParticipantSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid participant token",
+        ) from error
+
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_participant_removed_event(
+                room_code=code,
+                participant_id=str(participant.id),
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Participant leave was persisted but realtime event was not published",
+        )
+
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT,
     )
 
 
