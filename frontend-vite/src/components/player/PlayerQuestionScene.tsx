@@ -7,7 +7,7 @@ import type {
   ParticipantAnswerSubmitted,
   ParticipantQuestionOption,
 } from "../../types/api";
-
+import { QuestionCountdown } from "../shared/QuestionCountdown";
 type PlayerQuestionSceneProps = {
   roomCode: string;
   participantToken: string | null;
@@ -135,6 +135,8 @@ function QuestionContent({
       <p className="t2-copy">
         Дедлайн: {formatDeadline(currentQuestion.question_deadline_at)}
       </p>
+
+      <QuestionCountdown deadlineAt={currentQuestion.question_deadline_at} />
 
       <p className="t2-lead">{getSceneMessage(currentGamePhase)}</p>
 

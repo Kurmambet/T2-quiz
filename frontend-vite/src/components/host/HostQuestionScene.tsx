@@ -4,7 +4,7 @@ import { apiRequest } from "../../api/client";
 import type { GamePhase } from "../../lib/game-phase";
 import type { CurrentHostQuestion } from "../../types/api";
 import { HostAnswerStats } from "./HostAnswerStats";
-
+import { QuestionCountdown } from "../shared/QuestionCountdown";
 type HostQuestionSceneProps = {
   refreshKey: number;
   roomCode: string;
@@ -166,6 +166,7 @@ export function HostQuestionScene({
       <p className="t2-copy">
         Дедлайн: {formatDeadline(currentQuestion.question_deadline_at)}
       </p>
+      <QuestionCountdown deadlineAt={currentQuestion.question_deadline_at} />
       <HostAnswerStats
         currentGamePhase={currentGamePhase}
         organizerToken={organizerToken}
