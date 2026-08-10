@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and start development stack
+        run: docker compose -f compose.dev.yml up -d --build
+
+      - name: Wait for API readiness
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready; then
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "API did not become ready in time."
+          exit 1
+
+      - name: Run backend checks
+        run: make check
+
+      - name: Show Compose logs on failure
+        if: failure()
+        run: docker compose -f compose.dev.yml logs --no-color
+
+      - name: Stop development stack
+        if: always()
+        run: docker compose -f compose.dev.yml down -v
+
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend-vite
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend-vite/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build production frontend
+        run: npm run build
