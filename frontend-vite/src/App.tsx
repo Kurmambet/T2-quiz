@@ -474,11 +474,6 @@ function App() {
         lobby={lobby}
         realtimeStatus={realtimeStatus}
         currentGamePhase={currentGamePhase}
-        gamePhaseLabel={
-          currentGamePhase
-            ? GAME_PHASE_LABELS[currentGamePhase]
-            : "Ожидаем настройки игры"
-        }
         onClearSession={handleLeaveParticipantSession}
       />
     );

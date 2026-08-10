@@ -11,9 +11,43 @@ type PlayerRoomPageProps = {
   lobby: RoomLobby | null;
   realtimeStatus: RealtimeConnectionStatus;
   currentGamePhase: GamePhase | null;
-  gamePhaseLabel: string;
   onClearSession: () => void;
 };
+
+function getPlayerStatusText(
+  currentGamePhase: GamePhase | null,
+  realtimeStatus: RealtimeConnectionStatus,
+): string {
+  if (realtimeStatus === "connecting" || realtimeStatus === "reconnecting") {
+    return "Подключаемся к комнате...";
+  }
+
+  if (realtimeStatus === "unauthorized") {
+    return "Сессия недоступна. Откройте ссылку-приглашение ещё раз.";
+  }
+
+  if (currentGamePhase === "question") {
+    return "Вопрос открыт - выберите ответ.";
+  }
+
+  if (currentGamePhase === "answers_closed") {
+    return "Приём ответов завершён.";
+  }
+
+  if (currentGamePhase === "answer_reveal") {
+    return "Показываем правильный ответ.";
+  }
+
+  if (currentGamePhase === "scoreboard") {
+    return "Смотрим результаты.";
+  }
+
+  if (currentGamePhase === "finished") {
+    return "Квиз завершён. Ожидаем следующую игру.";
+  }
+
+  return "Ожидаем начала квиза.";
+}
 
 export function PlayerRoomPage({
   participantSession,
@@ -21,9 +55,9 @@ export function PlayerRoomPage({
   lobby,
   realtimeStatus,
   currentGamePhase,
-  gamePhaseLabel,
   onClearSession,
 }: PlayerRoomPageProps) {
+  const statusText = getPlayerStatusText(currentGamePhase, realtimeStatus);
   return (
     <main className="t2-page">
       <section className="t2-bento">
@@ -37,21 +71,12 @@ export function PlayerRoomPage({
           </p>
 
           <p className="t2-copy">Код комнаты: {participantSession.room.code}</p>
-
-          <p className="t2-copy">Realtime: {realtimeStatus}</p>
-
-          <p className="t2-copy">
-            Сцена:{" "}
-            {currentGamePhase ? gamePhaseLabel : "Ожидаем настройки игры"}
-          </p>
         </article>
 
         <aside className="t2-tile t2-tile--magenta t2-span-4">
           <p className="t2-eyebrow">Статус</p>
 
-          <p className="t2-title t2-title--stencil">
-            {participantSession.room.status}
-          </p>
+          <p className="t2-lead">{statusText}</p>
         </aside>
 
         <PlayerQuestionScene

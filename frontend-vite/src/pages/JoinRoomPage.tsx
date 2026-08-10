@@ -25,6 +25,8 @@ export function JoinRoomPage({
   onCreateRoom,
   onJoinRoom,
 }: JoinRoomPageProps) {
+  const statusText =
+    message || "Создайте комнату или введите код из приглашения.";
   return (
     <main className="t2-page">
       <section className="t2-bento">
@@ -99,12 +101,10 @@ export function JoinRoomPage({
           </form>
         </article>
 
-        {message && (
-          <aside className="t2-tile t2-tile--magenta t2-span-12">
-            <p className="t2-eyebrow">Статус</p>
-            <p className="t2-lead">{message}</p>
-          </aside>
-        )}
+        <aside className="t2-tile t2-tile--magenta t2-span-12">
+          <p className="t2-eyebrow">Статус</p>
+          <p className="t2-lead">{statusText}</p>
+        </aside>
       </section>
     </main>
   );
