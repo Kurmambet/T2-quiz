@@ -8,8 +8,10 @@ import {
   type GamePhase,
 } from "./lib/game-phase";
 import {
+  activateParticipantSession,
   clearActiveOrganizerSession,
   clearActiveParticipantSession,
+  clearParticipantSession as clearStoredParticipantSession,
   getActiveOrganizerSession,
   getActiveParticipantSession,
   saveOrganizerSession,
@@ -39,8 +41,9 @@ function getInviteRoomCode(): string {
 }
 
 function App() {
+  const inviteRoomCode = getInviteRoomCode();
   const [roomTitle, setRoomTitle] = useState("");
-  const [roomCode, setRoomCode] = useState(getInviteRoomCode);
+  const [roomCode, setRoomCode] = useState(inviteRoomCode);
   const [username, setUsername] = useState("");
 
   const [participantSession, setParticipantSession] =
@@ -65,7 +68,9 @@ function App() {
 
   useEffect(() => {
     async function restoreParticipantSession() {
-      const savedSession = getActiveParticipantSession();
+      const savedSession = inviteRoomCode
+        ? activateParticipantSession(inviteRoomCode)
+        : getActiveParticipantSession();
 
       if (!savedSession) {
         setIsRestoringSession(false);
@@ -96,7 +101,12 @@ function App() {
         setLobby(roomLobby);
         setGameSession(loadedGameSession);
       } catch {
-        clearParticipantSession();
+        clearActiveParticipantSession();
+        setParticipantSession(null);
+        setLobby(null);
+        setGameSession(null);
+        setRoomCode("");
+        setUsername("");
         setMessage("Предыдущая игровая сессия больше недоступна.");
       } finally {
         setIsRestoringSession(false);
@@ -104,11 +114,19 @@ function App() {
     }
 
     void restoreParticipantSession();
-  }, []);
+  }, [inviteRoomCode]);
 
   useEffect(() => {
     async function restoreOrganizerSession() {
       const savedSession = getActiveOrganizerSession();
+
+      if (
+        inviteRoomCode &&
+        savedSession &&
+        savedSession.roomCode !== inviteRoomCode
+      ) {
+        return;
+      }
 
       if (!savedSession) {
         return;
@@ -155,7 +173,7 @@ function App() {
     }
 
     void restoreOrganizerSession();
-  }, []);
+  }, [inviteRoomCode]);
 
   useEffect(() => {
     async function loadQuizTemplates() {
@@ -261,12 +279,52 @@ function App() {
     ? (NEXT_GAME_PHASE[currentGamePhase] ?? null)
     : null;
 
-  function clearParticipantSession() {
-    clearActiveParticipantSession();
+  async function handleLeaveParticipantSession(): Promise<void> {
+    if (!participantSession) {
+      clearActiveParticipantSession();
+      return;
+    }
 
-    setParticipantSession(null);
-    setRoomCode("");
-    setUsername("");
+    const savedSession = getActiveParticipantSession();
+
+    if (!savedSession) {
+      clearStoredParticipantSession(participantSession.room.code);
+      setParticipantSession(null);
+      setLobby(null);
+      setGameSession(null);
+      setRoomCode("");
+      setUsername("");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      await apiRequest<void>(
+        `/api/v1/rooms/${participantSession.room.code}/me`,
+        {
+          method: "DELETE",
+          headers: {
+            "X-Participant-Token": savedSession.participantToken,
+          },
+        },
+      );
+
+      clearStoredParticipantSession(participantSession.room.code);
+      setParticipantSession(null);
+      setLobby(null);
+      setGameSession(null);
+      setRoomCode("");
+      setUsername("");
+      setMessage("Вы вышли из комнаты.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Не удалось выйти из комнаты.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleParticipantRemoved() {
@@ -330,6 +388,7 @@ function App() {
     event.preventDefault();
 
     const normalizedRoomCode = roomCode.trim().toUpperCase();
+    const previousParticipantSession = getActiveParticipantSession();
 
     setIsLoading(true);
     setMessage("");
@@ -350,6 +409,29 @@ function App() {
         username: participant.username,
         participantToken: participant.participant_token,
       });
+
+      if (
+        previousParticipantSession &&
+        previousParticipantSession.roomCode !== normalizedRoomCode
+      ) {
+        try {
+          await apiRequest<void>(
+            `/api/v1/rooms/${previousParticipantSession.roomCode}/me`,
+            {
+              method: "DELETE",
+              headers: {
+                "X-Participant-Token":
+                  previousParticipantSession.participantToken,
+              },
+            },
+          );
+
+          clearStoredParticipantSession(previousParticipantSession.roomCode);
+        } catch {
+          // New room join already succeeded. Do not break it if old session
+          // was removed already or its network request failed.
+        }
+      }
 
       const session = await apiRequest<ParticipantSession>(
         `/api/v1/rooms/${normalizedRoomCode}/me`,
@@ -392,12 +474,7 @@ function App() {
         lobby={lobby}
         realtimeStatus={realtimeStatus}
         currentGamePhase={currentGamePhase}
-        gamePhaseLabel={
-          currentGamePhase
-            ? GAME_PHASE_LABELS[currentGamePhase]
-            : "Ожидаем настройки игры"
-        }
-        onClearSession={clearParticipantSession}
+        onClearSession={handleLeaveParticipantSession}
       />
     );
   }
@@ -420,7 +497,6 @@ function App() {
         message={message}
         nextGamePhase={nextGamePhase}
         quizTemplates={quizTemplates}
-        realtimeStatus={realtimeStatus}
         realtimeRevision={realtimeRevision}
         selectedTemplateId={selectedTemplateId}
         showCorrectAnswer={showCorrectAnswer}

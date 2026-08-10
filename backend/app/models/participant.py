@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,10 +11,12 @@ from app.db.base import Base
 class Participant(Base):
     __tablename__ = "participants"
     __table_args__ = (
-        UniqueConstraint(
+        Index(
+            "participant_active_room_username_unique",
             "room_id",
             "username_normalized",
-            name="participant_room_username_unique",
+            unique=True,
+            postgresql_where=text("removed_at IS NULL"),
         ),
     )
 
@@ -51,6 +53,7 @@ class Participant(Base):
         nullable=False,
         server_default=func.now(),
     )
+
     removed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

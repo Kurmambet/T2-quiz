@@ -69,6 +69,23 @@ async def join_room(
     return participant, participant_token
 
 
+async def leave_room(
+    session: AsyncSession,
+    room_code: str,
+    participant_token: str,
+) -> Participant:
+    _, participant = await get_participant_session(
+        session=session,
+        room_code=room_code,
+        participant_token=participant_token,
+    )
+
+    return await _deactivate_participant(
+        session=session,
+        participant=participant,
+    )
+
+
 async def remove_participant(
     session: AsyncSession,
     room_code: str,
@@ -99,12 +116,10 @@ async def remove_participant(
     if participant is None:
         raise ParticipantNotFoundError
 
-    participant.removed_at = datetime.now(UTC)
-
-    await session.commit()
-    await session.refresh(participant)
-
-    return participant
+    return await _deactivate_participant(
+        session=session,
+        participant=participant,
+    )
 
 
 async def get_participant_session(
@@ -154,6 +169,18 @@ async def get_room_lobby(
     )
 
     return room, participants
+
+
+async def _deactivate_participant(
+    session: AsyncSession,
+    participant: Participant,
+) -> Participant:
+    participant.removed_at = datetime.now(UTC)
+
+    await session.commit()
+    await session.refresh(participant)
+
+    return participant
 
 
 async def _ensure_room_is_joinable(

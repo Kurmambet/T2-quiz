@@ -87,9 +87,6 @@ docker compose -f compose.dev.yml exec api \
   uv run --no-sync ruff format alembic/versions
 
 make upgrade
-
-# Убедиться в текущей версии
-make upgrade
 make check-migrations
 make check
 make current
@@ -100,4 +97,7 @@ make current
 ```bash
 docker compose -f compose.dev.yml exec api \
   uv run --no-sync pytest -q tests/test_gameplay.py
+
+docker compose -f compose.dev.yml exec api \
+  uv run --no-sync pytest tests/test_participant_lifecycle.py -q
 ```

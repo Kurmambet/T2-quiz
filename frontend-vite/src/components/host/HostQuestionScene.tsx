@@ -154,6 +154,7 @@ export function HostQuestionScene({
   }
 
   const { question } = currentQuestion;
+  const isQuestionOpen = currentGamePhase === "question";
 
   return (
     <article className="t2-tile t2-tile--electric t2-span-12">
@@ -163,10 +164,19 @@ export function HostQuestionScene({
 
       <h2 className="t2-title">{question.content}</h2>
 
-      <p className="t2-copy">
-        Дедлайн: {formatDeadline(currentQuestion.question_deadline_at)}
-      </p>
-      <QuestionCountdown deadlineAt={currentQuestion.question_deadline_at} />
+      {isQuestionOpen && (
+        <>
+          <p className="t2-copy">
+            До окончания приёма ответов:{" "}
+            {formatDeadline(currentQuestion.question_deadline_at)}
+          </p>
+
+          <QuestionCountdown
+            deadlineAt={currentQuestion.question_deadline_at}
+          />
+        </>
+      )}
+
       <HostAnswerStats
         currentGamePhase={currentGamePhase}
         organizerToken={organizerToken}

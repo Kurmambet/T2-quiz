@@ -1,5 +1,4 @@
 import type { GamePhase } from "../lib/game-phase";
-import type { RealtimeConnectionStatus } from "../lib/use-room-realtime";
 import type { GameSession, QuizTemplate, RoomLobby } from "../types/api";
 import { LeaderboardScene } from "../components/shared/LeaderboardScene";
 import { HostQuestionScene } from "../components/host/HostQuestionScene";
@@ -18,7 +17,6 @@ type HostRoomPageProps = {
   showCorrectAnswer: boolean;
   currentGamePhase: GamePhase | null;
   nextGamePhase: GamePhase | null;
-  realtimeStatus: RealtimeConnectionStatus;
   isLoading: boolean;
   message: string;
   gamePhaseLabel: string;
@@ -34,6 +32,38 @@ type HostRoomPageProps = {
   onRemoveParticipant: (participantId: string, username: string) => void;
 };
 
+function getHostStatusText(currentGamePhase: GamePhase | null): string {
+  if (currentGamePhase === "question") {
+    return "Игроки отвечают на вопрос.";
+  }
+
+  if (currentGamePhase === "answers_closed") {
+    return "Приём ответов завершён.";
+  }
+
+  if (currentGamePhase === "answer_reveal") {
+    return "Показывается правильный ответ.";
+  }
+
+  if (currentGamePhase === "scoreboard") {
+    return "Показываем результаты.";
+  }
+
+  if (currentGamePhase === "finished") {
+    return "Квиз завершён. Можно выбрать следующий квиз.";
+  }
+
+  if (currentGamePhase === "presentation") {
+    return "Квиз готов. Откройте первый вопрос.";
+  }
+
+  if (currentGamePhase === "setup") {
+    return "Квиз настроен. Запустите игру, когда будете готовы.";
+  }
+
+  return "Выберите квиз и пригласите игроков.";
+}
+
 export function HostRoomPage({
   lobby,
   realtimeRevision,
@@ -46,7 +76,6 @@ export function HostRoomPage({
   showCorrectAnswer,
   currentGamePhase,
   nextGamePhase,
-  realtimeStatus,
   isLoading,
   message,
   gamePhaseLabel,
@@ -70,6 +99,8 @@ export function HostRoomPage({
 
   const hasConfiguredGame = gameSession !== null;
 
+  const statusText = getHostStatusText(currentGamePhase);
+
   const currentQuestionPosition =
     typeof gameSession?.state.current_question_position === "number"
       ? gameSession.state.current_question_position
@@ -84,8 +115,6 @@ export function HostRoomPage({
           <h1 className="t2-title">{lobby.room.title}</h1>
 
           <p className="t2-lead">Код для подключения: {lobby.room.code}</p>
-
-          <p className="t2-copy">Realtime: {realtimeStatus}</p>
 
           <p className="t2-copy">
             Игроков в lobby: {lobby.participants.length}
@@ -241,7 +270,7 @@ export function HostRoomPage({
         <aside className="t2-tile t2-tile--magenta t2-span-4">
           <p className="t2-eyebrow">Статус</p>
 
-          <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
+          <p className="t2-lead">{statusText}</p>
         </aside>
 
         <InviteRoomPanel roomCode={lobby.room.code} />
