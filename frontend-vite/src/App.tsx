@@ -497,7 +497,6 @@ function App() {
         message={message}
         nextGamePhase={nextGamePhase}
         quizTemplates={quizTemplates}
-        realtimeStatus={realtimeStatus}
         realtimeRevision={realtimeRevision}
         selectedTemplateId={selectedTemplateId}
         showCorrectAnswer={showCorrectAnswer}
