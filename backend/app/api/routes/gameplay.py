@@ -95,7 +95,13 @@ async def get_current_question_endpoint(
         )
 
     try:
-        phase, deadline, question, options = await get_current_question_for_participant(
+        (
+            phase,
+            deadline,
+            time_limit_seconds,
+            question,
+            options,
+        ) = await get_current_question_for_participant(
             session=session,
             room_code=code,
             participant_token=participant_token,
@@ -128,7 +134,7 @@ async def get_current_question_endpoint(
             id=question.id,
             position=question.position,
             content=question.content,
-            time_limit_seconds=question.time_limit_seconds,
+            time_limit_seconds=time_limit_seconds,
             points=question.points,
             options=[
                 ParticipantQuestionOptionRead(
@@ -161,6 +167,7 @@ async def get_current_question_for_organizer_endpoint(
         (
             phase,
             deadline,
+            time_limit_seconds,
             question,
             options,
             should_show_correctness,
@@ -197,7 +204,7 @@ async def get_current_question_for_organizer_endpoint(
             id=question.id,
             position=question.position,
             content=question.content,
-            time_limit_seconds=question.time_limit_seconds,
+            time_limit_seconds=time_limit_seconds,
             points=question.points,
             options=[
                 HostQuestionOptionRead(

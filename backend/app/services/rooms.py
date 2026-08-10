@@ -120,6 +120,7 @@ async def start_room(
         "phase": "lobby",
         "current_question_position": 0,
         "question_deadline_at": None,
+        "current_question_time_limit_seconds": None,
     }
 
     await session.commit()

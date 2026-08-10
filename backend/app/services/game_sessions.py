@@ -119,6 +119,7 @@ async def configure_quiz_game(
                 "phase": GamePhase.SETUP.value,
                 "current_question_position": 0,
                 "question_deadline_at": None,
+                "current_question_time_limit_seconds": None,
             },
         )
 
@@ -131,6 +132,7 @@ async def configure_quiz_game(
             "phase": GamePhase.SETUP.value,
             "current_question_position": 0,
             "question_deadline_at": None,
+            "current_question_time_limit_seconds": None,
         }
 
     await session.commit()
@@ -204,9 +206,14 @@ async def transition_game_session(
     now = datetime.now(UTC)
     next_question_position = _get_question_position(game_session.state)
     question_deadline_at: str | None = None
+    current_question_time_limit_seconds: int | None = None
 
     if payload.target_phase == GamePhase.QUESTION:
-        next_question_position, question_deadline_at = await _prepare_question(
+        (
+            next_question_position,
+            question_deadline_at,
+            current_question_time_limit_seconds,
+        ) = await _prepare_question(
             session=session,
             game_session=game_session,
             current_phase=current_phase,
@@ -219,6 +226,7 @@ async def transition_game_session(
         "phase": payload.target_phase.value,
         "current_question_position": next_question_position,
         "question_deadline_at": question_deadline_at,
+        "current_question_time_limit_seconds": (current_question_time_limit_seconds),
     }
 
     if payload.target_phase == GamePhase.FINISHED:
@@ -255,7 +263,7 @@ async def _prepare_question(
     current_phase: GamePhase,
     current_question_position: int,
     now: datetime,
-) -> tuple[int, str]:
+) -> tuple[int, str, int]:
     if current_phase == GamePhase.PRESENTATION:
         next_position = 1
     elif current_phase == GamePhase.SCOREBOARD:
@@ -273,6 +281,33 @@ async def _prepare_question(
     if question is None:
         raise NoNextQuestionError
 
-    deadline = now + timedelta(seconds=question.time_limit_seconds)
+    time_limit_seconds = _get_effective_time_limit(
+        settings=game_session.settings,
+        template_time_limit_seconds=question.time_limit_seconds,
+    )
 
-    return next_position, deadline.isoformat()
+    deadline = now + timedelta(seconds=time_limit_seconds)
+
+    return (
+        next_position,
+        deadline.isoformat(),
+        time_limit_seconds,
+    )
+
+
+def _get_effective_time_limit(
+    settings: dict[str, object],
+    template_time_limit_seconds: int,
+) -> int:
+    configured_time_limit = settings.get(
+        "default_time_limit_seconds",
+    )
+
+    if (
+        isinstance(configured_time_limit, int)
+        and not isinstance(configured_time_limit, bool)
+        and 5 <= configured_time_limit <= 600
+    ):
+        return configured_time_limit
+
+    return template_time_limit_seconds

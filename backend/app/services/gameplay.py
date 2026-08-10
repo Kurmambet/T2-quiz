@@ -29,6 +29,7 @@ async def get_current_question_for_participant(
 ) -> tuple[
     GamePhase,
     datetime | None,
+    int,
     QuizQuestion,
     list[QuizAnswerOption],
 ]:
@@ -77,6 +78,10 @@ async def get_current_question_for_participant(
     return (
         phase,
         _get_deadline(game_session.state),
+        _get_current_question_time_limit(
+            state=game_session.state,
+            fallback_time_limit_seconds=question.time_limit_seconds,
+        ),
         question,
         options,
     )
@@ -113,3 +118,21 @@ def _get_deadline(state: dict[str, object]) -> datetime | None:
         return datetime.fromisoformat(raw_deadline)
     except ValueError as error:
         raise CurrentQuestionNotAvailableError from error
+
+
+def _get_current_question_time_limit(
+    state: dict[str, object],
+    fallback_time_limit_seconds: int,
+) -> int:
+    raw_time_limit = state.get(
+        "current_question_time_limit_seconds",
+    )
+
+    if (
+        isinstance(raw_time_limit, int)
+        and not isinstance(raw_time_limit, bool)
+        and raw_time_limit > 0
+    ):
+        return raw_time_limit
+
+    return fallback_time_limit_seconds
