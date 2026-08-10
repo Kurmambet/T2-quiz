@@ -94,3 +94,10 @@ make check-migrations
 make check
 make current
 ```
+
+# TESTS
+
+```bash
+docker compose -f compose.dev.yml exec api \
+  uv run --no-sync pytest -q tests/test_gameplay.py
+```

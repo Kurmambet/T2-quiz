@@ -10,6 +10,8 @@ def create_test_game(
     client: TestClient,
     *,
     allow_late_join: bool,
+    default_time_limit_seconds: int = 60,
+    template_time_limit_seconds: int = 60,
 ) -> dict[str, Any]:
     template_response = client.post(
         "/api/v1/quiz-templates",
@@ -19,7 +21,7 @@ def create_test_game(
             "questions": [
                 {
                     "content": "Какой цвет является основным акцентом T2?",
-                    "time_limit_seconds": 60,
+                    "time_limit_seconds": template_time_limit_seconds,
                     "points": 100,
                     "options": [
                         {
@@ -34,7 +36,7 @@ def create_test_game(
                 },
                 {
                     "content": "Сколько будет два плюс два?",
-                    "time_limit_seconds": 60,
+                    "time_limit_seconds": template_time_limit_seconds,
                     "points": 100,
                     "options": [
                         {
@@ -77,7 +79,7 @@ def create_test_game(
             "settings": {
                 "allow_late_join": allow_late_join,
                 "show_correct_answer": True,
-                "default_time_limit_seconds": 60,
+                "default_time_limit_seconds": default_time_limit_seconds,
             },
         },
     )
@@ -314,3 +316,51 @@ def test_leaderboard_sums_awarded_points_after_scoreboard() -> None:
                 "answered_questions": 1,
             }
         ]
+
+
+def test_game_setting_overrides_template_question_time_limit() -> None:
+    with TestClient(app) as client:
+        game = create_test_game(
+            client,
+            allow_late_join=True,
+            default_time_limit_seconds=120,
+            template_time_limit_seconds=20,
+        )
+
+        question_response = get_current_question(client, game)
+
+        assert question_response["question"]["time_limit_seconds"] == 120
+
+        game_session_response = client.get(
+            f"/api/v1/rooms/{game['room_code']}/game",
+        )
+
+        assert game_session_response.status_code == 200
+
+        game_state = game_session_response.json()["state"]
+
+        assert game_state["current_question_time_limit_seconds"] == 120
+        assert game_state["question_deadline_at"] is not None
+
+
+def test_answer_rejects_option_from_another_question() -> None:
+    with TestClient(app) as client:
+        game = create_test_game(
+            client,
+            allow_late_join=True,
+        )
+
+        invalid_option_id = uuid4()
+
+        answer_response = client.post(
+            f"/api/v1/rooms/{game['room_code']}/game/current-question/answer",
+            headers=game["participant_headers"],
+            json={
+                "selected_option_id": str(invalid_option_id),
+            },
+        )
+
+        assert answer_response.status_code == 422
+        assert answer_response.json() == {
+            "detail": ("Selected option does not belong to the current question"),
+        }
