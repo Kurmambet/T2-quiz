@@ -23,7 +23,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Create CI backend environment
+        run: |
+          cat > backend/.env <<'EOF'
+          APP_NAME=T2 Quiz Rooms API
+          APP_ENV=testing
+          DEBUG=false
+          APP_SECRET_KEY=ci-only-not-a-production-secret
+          API_V1_PREFIX=/api/v1
+
+          DATABASE_URL=postgresql+asyncpg://t2_quiz:t2_quiz_dev_password@db:5432/t2_quiz
+          DATABASE_POOL_SIZE=5
+          DATABASE_MAX_OVERFLOW=5
+          SQL_ECHO=false
+
+          REDIS_URL=redis://redis:6379/0
+
+          REALTIME_PRESENCE_TTL_SECONDS=45
+          REALTIME_HEARTBEAT_INTERVAL_SECONDS=15
+
+          CORS_ORIGINS=["http://localhost"]
+          EOF
 
       - name: Build and start development stack
         run: docker compose -f compose.dev.yml up -d --build
@@ -63,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
