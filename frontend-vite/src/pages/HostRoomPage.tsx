@@ -91,6 +91,9 @@ export function HostRoomPage({
   onClearSession,
   onRemoveParticipant,
 }: HostRoomPageProps) {
+  const canConfigureGame =
+    lobby.room.status === "lobby" || lobby.room.status === "finished";
+
   const canStartRoom = lobby.room.status === "lobby";
 
   const selectedTemplate = quizTemplates.find(
@@ -120,7 +123,7 @@ export function HostRoomPage({
             Игроков в lobby: {lobby.participants.length}
           </p>
 
-          {canStartRoom && (
+          {canConfigureGame && (
             <section className="t2-game-settings">
               <p className="t2-eyebrow">Настройка игры</p>
 
