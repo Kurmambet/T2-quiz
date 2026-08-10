@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -102,3 +102,82 @@ jobs:
 
       - name: Build production frontend
         run: npm run build
+
+  deploy:
+    name: Deploy production
+    needs:
+      - backend
+      - frontend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://hushme.fun
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy with Docker Compose
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -p "$DEPLOY_PORT" \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            'bash -s' <<'EOF'
+          set -Eeuo pipefail
+
+          cd /opt/t2-quiz/T2-quiz
+
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+
+          docker compose -f compose.prod.yml build
+          docker compose -f compose.prod.yml up -d --remove-orphans
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready; then
+              docker compose -f compose.prod.yml ps
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "API did not become ready after deploy."
+          docker compose -f compose.prod.yml logs --tail=150 migrate api frontend
+          exit 1
+          EOF
+
+      - name: Verify public API
+        run: |
+          for attempt in $(seq 1 15); do
+            if curl --fail --silent --show-error \
+              https://hushme.fun/api/v1/quiz-templates > /dev/null; then
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "Public API health verification failed."
+          exit 1
