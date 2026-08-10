@@ -69,3 +69,17 @@ def build_room_answer_submitted_event(
             "question_id": question_id,
         },
     }
+
+
+def build_participant_removed_event(
+    room_code: str,
+    participant_id: str,
+) -> dict[str, object]:
+    return {
+        "type": "participant.removed",
+        "room_code": normalize_room_code(room_code),
+        "occurred_at": datetime.now(UTC).isoformat(),
+        "data": {
+            "participant_id": participant_id,
+        },
+    }

@@ -12,7 +12,9 @@ type UseRoomRealtimeOptions = {
   roomCode: string | null;
   role: RealtimeRole | null;
   token: string | null;
+  participantId: string | null;
   onRoomChanged: () => void | Promise<void>;
+  onParticipantRemoved: () => void;
 };
 
 export type RealtimeConnectionStatus =
@@ -65,16 +67,22 @@ export function useRoomRealtime({
   roomCode,
   role,
   token,
+  participantId,
   onRoomChanged,
+  onParticipantRemoved,
 }: UseRoomRealtimeOptions): RealtimeConnectionStatus {
   const [connectionStatus, setConnectionStatus] =
     useState<RealtimeConnectionStatus>("idle");
 
   const onRoomChangedRef = useRef(onRoomChanged);
-
+  const onParticipantRemovedRef = useRef(onParticipantRemoved);
   useEffect(() => {
     onRoomChangedRef.current = onRoomChanged;
   }, [onRoomChanged]);
+
+  useEffect(() => {
+    onParticipantRemovedRef.current = onParticipantRemoved;
+  }, [onParticipantRemoved]);
 
   useEffect(() => {
     if (!roomCode || !role || !token) {
@@ -148,10 +156,29 @@ export function useRoomRealtime({
       socket.addEventListener("message", (message: MessageEvent<string>) => {
         const event = parseRealtimeEvent(message.data);
 
+        if (!event) {
+          return;
+        }
+
+        if (event.type === "participant.removed") {
+          const removedParticipantId = event.data?.participant_id;
+
+          if (
+            typeof removedParticipantId === "string" &&
+            removedParticipantId === participantId
+          ) {
+            onParticipantRemovedRef.current();
+            return;
+          }
+
+          void onRoomChangedRef.current();
+          return;
+        }
+
         if (
-          event?.type === "room.state_changed" ||
-          event?.type === "room.lobby_changed" ||
-          event?.type === "room.answer_submitted"
+          event.type === "room.state_changed" ||
+          event.type === "room.lobby_changed" ||
+          event.type === "room.answer_submitted"
         ) {
           void onRoomChangedRef.current();
         }
@@ -185,7 +212,7 @@ export function useRoomRealtime({
       clearReconnect();
       socket?.close(1000);
     };
-  }, [roomCode, role, token]);
+  }, [participantId, roomCode, role, token]);
 
   if (!roomCode || !role || !token) {
     return "idle";

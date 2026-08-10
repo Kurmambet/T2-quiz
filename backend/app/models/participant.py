@@ -51,3 +51,8 @@ class Participant(Base):
         nullable=False,
         server_default=func.now(),
     )
+    removed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )

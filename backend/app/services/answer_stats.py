@@ -88,6 +88,7 @@ async def get_current_question_answer_stats(
             .select_from(Participant)
             .where(
                 Participant.room_id == room.id,
+                Participant.removed_at.is_(None),
             )
         )
         or 0

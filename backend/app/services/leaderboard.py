@@ -84,6 +84,7 @@ async def get_leaderboard(
         )
         .where(
             Participant.room_id == room.id,
+            Participant.removed_at.is_(None),
         )
         .group_by(
             Participant.id,

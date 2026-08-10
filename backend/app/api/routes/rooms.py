@@ -1,12 +1,14 @@
 import logging
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from redis.exceptions import RedisError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.realtime.events import (
+    build_participant_removed_event,
     build_room_lobby_changed_event,
     build_room_state_changed_event,
     publish_room_event,
@@ -22,12 +24,14 @@ from app.schemas.participant import (
 from app.schemas.room import RoomCreate, RoomCreated, RoomRead
 from app.services.game_sessions import get_game_session
 from app.services.participants import (
+    ParticipantNotFoundError,
     ParticipantSessionNotFoundError,
     RoomNotJoinableError,
     UsernameAlreadyTakenError,
     get_participant_session,
     get_room_lobby,
     join_room,
+    remove_participant,
 )
 from app.services.rooms import (
     GameNotConfiguredError,
@@ -263,4 +267,62 @@ async def join_room_endpoint(
     return ParticipantJoined(
         **participant_data.model_dump(),
         participant_token=participant_token,
+    )
+
+
+@router.delete(
+    "/{code}/participants/{participant_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_participant_endpoint(
+    code: str,
+    participant_id: uuid.UUID,
+    session: DbSession,
+    organizer_token: OrganizerToken = None,
+) -> Response:
+    if organizer_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Organizer token is required",
+        )
+
+    try:
+        participant = await remove_participant(
+            session=session,
+            room_code=code,
+            organizer_token=organizer_token,
+            participant_id=participant_id,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except OrganizerTokenInvalidError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid organizer token",
+        ) from error
+    except ParticipantNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Active participant not found",
+        ) from error
+
+    try:
+        await publish_room_event(
+            redis=redis_client,
+            room_code=code,
+            event=build_participant_removed_event(
+                room_code=code,
+                participant_id=str(participant.id),
+            ),
+        )
+    except RedisError:
+        logger.exception(
+            "Participant removal was persisted but realtime event was not published",
+        )
+
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT,
     )

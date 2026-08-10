@@ -671,3 +671,63 @@ select option {
   justify-self: start;
   margin-top: 0;
 }
+
+.t2-participant {
+  gap: 0.5rem;
+}
+
+.t2-participant__remove {
+  min-height: 26px;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--t2-black);
+  border-radius: 0;
+  background: transparent;
+  color: var(--t2-black);
+  cursor: pointer;
+  font-family: var(--t2-font-body);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.t2-participant__remove:hover:not(:disabled) {
+  background: var(--t2-magenta);
+}
+.t2-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--t2-gap);
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+.t2-invite__content {
+  min-width: 0;
+}
+
+.t2-invite__content input {
+  color: var(--t2-black);
+}
+
+.t2-invite__qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: var(--t2-white);
+}
+
+.t2-invite__qr svg {
+  display: block;
+  width: min(192px, 100%);
+  height: auto;
+}
+
+@media (max-width: 760px) {
+  .t2-invite {
+    grid-template-columns: 1fr;
+  }
+
+  .t2-invite__qr {
+    justify-self: start;
+  }
+}

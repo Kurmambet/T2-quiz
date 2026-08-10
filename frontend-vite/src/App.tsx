@@ -32,9 +32,15 @@ import type {
   RoomLobby,
 } from "./types/api";
 
+function getInviteRoomCode(): string {
+  const roomCode = new URLSearchParams(window.location.search).get("room");
+
+  return roomCode?.trim().toUpperCase() ?? "";
+}
+
 function App() {
   const [roomTitle, setRoomTitle] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+  const [roomCode, setRoomCode] = useState(getInviteRoomCode);
   const [username, setUsername] = useState("");
 
   const [participantSession, setParticipantSession] =
@@ -246,9 +252,10 @@ function App() {
     roomCode: realtimeRoomCode,
     role: realtimeRole,
     token: realtimeToken,
+    participantId: participantSession?.participant.id ?? null,
     onRoomChanged: refreshRoomData,
+    onParticipantRemoved: handleParticipantRemoved,
   });
-
   const currentGamePhase = getGamePhase(gameSession);
   const nextGamePhase = currentGamePhase
     ? (NEXT_GAME_PHASE[currentGamePhase] ?? null)
@@ -260,6 +267,18 @@ function App() {
     setParticipantSession(null);
     setRoomCode("");
     setUsername("");
+  }
+
+  function handleParticipantRemoved() {
+    clearActiveParticipantSession();
+
+    setParticipantSession(null);
+    setLobby(null);
+    setGameSession(null);
+    setRoomCode("");
+    setUsername("");
+
+    setMessage("Ведущий удалил тебя из этой игровой комнаты.");
   }
 
   async function handleCreateRoom(event: FormEvent<HTMLFormElement>) {
@@ -407,6 +426,7 @@ function App() {
         showCorrectAnswer={showCorrectAnswer}
         onAllowLateJoinChange={setAllowLateJoin}
         onClearSession={handleClearOrganizerSession}
+        onRemoveParticipant={handleRemoveParticipant}
         onConfigureGame={handleConfigureGame}
         onQuizTemplateCreated={handleQuizTemplateCreated}
         onDefaultTimeLimitChange={setDefaultTimeLimit}
@@ -547,6 +567,59 @@ function App() {
         error instanceof Error
           ? error.message
           : "Не удалось изменить игровую сцену",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRemoveParticipant(
+    participantId: string,
+    username: string,
+  ) {
+    if (!organizerSession) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Удалить игрока «${username}» из этой room?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      await apiRequest<void>(
+        `/api/v1/rooms/${organizerSession.roomCode}/participants/${participantId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "X-Organizer-Token": organizerSession.organizerToken,
+          },
+        },
+      );
+
+      setLobby((currentLobby) => {
+        if (!currentLobby) {
+          return null;
+        }
+
+        return {
+          ...currentLobby,
+          participants: currentLobby.participants.filter(
+            (participant) => participant.id !== participantId,
+          ),
+        };
+      });
+
+      setMessage(`Игрок «${username}» удалён из room.`);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Не удалось удалить игрока",
       );
     } finally {
       setIsLoading(false);

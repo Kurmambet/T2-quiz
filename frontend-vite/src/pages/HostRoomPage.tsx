@@ -4,6 +4,7 @@ import type { GameSession, QuizTemplate, RoomLobby } from "../types/api";
 import { LeaderboardScene } from "../components/shared/LeaderboardScene";
 import { HostQuestionScene } from "../components/host/HostQuestionScene";
 import { CreateQuizTemplateForm } from "../components/host/CreateQuizTemplateForm";
+import { InviteRoomPanel } from "../components/host/InviteRoomPanel";
 
 type HostRoomPageProps = {
   lobby: RoomLobby;
@@ -30,6 +31,7 @@ type HostRoomPageProps = {
   onTransitionGame: (targetPhase: GamePhase) => void;
   onClearSession: () => void;
   onQuizTemplateCreated: (template: QuizTemplate) => void;
+  onRemoveParticipant: (participantId: string, username: string) => void;
 };
 
 export function HostRoomPage({
@@ -58,6 +60,7 @@ export function HostRoomPage({
   onStartRoom,
   onTransitionGame,
   onClearSession,
+  onRemoveParticipant,
 }: HostRoomPageProps) {
   const canStartRoom = lobby.room.status === "lobby";
 
@@ -241,6 +244,8 @@ export function HostRoomPage({
           <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
         </aside>
 
+        <InviteRoomPanel roomCode={lobby.room.code} />
+
         <HostQuestionScene
           currentGamePhase={currentGamePhase}
           organizerToken={organizerToken}
@@ -259,9 +264,20 @@ export function HostRoomPage({
 
           <div className="t2-participants">
             {lobby.participants.map((participant) => (
-              <span className="t2-participant" key={participant.id}>
-                {participant.username}
-              </span>
+              <div className="t2-participant" key={participant.id}>
+                <span>{participant.username}</span>
+
+                <button
+                  className="t2-participant__remove"
+                  disabled={isLoading}
+                  onClick={() =>
+                    onRemoveParticipant(participant.id, participant.username)
+                  }
+                  type="button"
+                >
+                  Удалить
+                </button>
+              </div>
             ))}
           </div>
 
