@@ -57,3 +57,31 @@ class LeaderboardEntryRead(BaseModel):
 class LeaderboardRead(BaseModel):
     phase: GamePhase
     entries: list[LeaderboardEntryRead]
+
+
+class HostQuestionOptionRead(BaseModel):
+    id: uuid.UUID
+    position: int
+    content: str
+    is_correct: bool | None
+
+
+class HostQuestionRead(BaseModel):
+    id: uuid.UUID
+    position: int
+    content: str
+    time_limit_seconds: int
+    points: int
+    options: list[HostQuestionOptionRead]
+
+
+class CurrentHostQuestionRead(BaseModel):
+    phase: GamePhase
+    question_deadline_at: datetime | None
+    question: HostQuestionRead
+
+
+class CurrentQuestionAnswerStatsRead(BaseModel):
+    phase: GamePhase
+    answered_count: int
+    participants_count: int

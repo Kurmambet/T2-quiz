@@ -1,4 +1,5 @@
 import hmac
+import uuid
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +31,7 @@ async def get_leaderboard(
     participant_token: str | None,
 ) -> tuple[
     GamePhase,
-    list[tuple[str, str, int, int]],
+    list[tuple[uuid.UUID, str, int, int]],
 ]:
     room = await get_room_by_code(
         session=session,
@@ -100,7 +101,7 @@ async def get_leaderboard(
         phase,
         [
             (
-                str(row.id),
+                row.id,
                 row.username,
                 int(row.total_points),
                 int(row.answered_questions),

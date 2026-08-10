@@ -12,14 +12,22 @@ from app.realtime.events import (
 )
 from app.realtime.redis import redis_client
 from app.schemas.gameplay import (
+    CurrentHostQuestionRead,
     CurrentParticipantQuestionRead,
+    CurrentQuestionAnswerStatsRead,
     CurrentQuestionRevealRead,
+    HostQuestionOptionRead,
+    HostQuestionRead,
     LeaderboardEntryRead,
     LeaderboardRead,
     ParticipantAnswerSubmit,
     ParticipantAnswerSubmitted,
     ParticipantQuestionOptionRead,
     ParticipantQuestionRead,
+)
+from app.services.answer_stats import (
+    CurrentQuestionAnswerStatsNotAvailableError,
+    get_current_question_answer_stats,
 )
 from app.services.answers import (
     AnswerAlreadySubmittedError,
@@ -32,6 +40,10 @@ from app.services.game_sessions import GameSessionNotFoundError
 from app.services.gameplay import (
     CurrentQuestionNotAvailableError,
     get_current_question_for_participant,
+)
+from app.services.host_gameplay import (
+    HostCurrentQuestionNotAvailableError,
+    get_current_question_for_organizer,
 )
 from app.services.leaderboard import (
     LeaderboardNotAvailableError,
@@ -127,6 +139,129 @@ async def get_current_question_endpoint(
                 for option in options
             ],
         ),
+    )
+
+
+@router.get(
+    "/{code}/game/current-question/host",
+    response_model=CurrentHostQuestionRead,
+)
+async def get_current_question_for_organizer_endpoint(
+    code: str,
+    session: DbSession,
+    organizer_token: OrganizerToken = None,
+) -> CurrentHostQuestionRead:
+    if organizer_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Organizer token is required",
+        )
+
+    try:
+        (
+            phase,
+            deadline,
+            question,
+            options,
+            should_show_correctness,
+        ) = await get_current_question_for_organizer(
+            session=session,
+            room_code=code,
+            organizer_token=organizer_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except OrganizerTokenInvalidError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid organizer token",
+        ) from error
+    except GameSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Game is not configured",
+        ) from error
+    except HostCurrentQuestionNotAvailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current question is not available in this game phase",
+        ) from error
+
+    return CurrentHostQuestionRead(
+        phase=phase,
+        question_deadline_at=deadline,
+        question=HostQuestionRead(
+            id=question.id,
+            position=question.position,
+            content=question.content,
+            time_limit_seconds=question.time_limit_seconds,
+            points=question.points,
+            options=[
+                HostQuestionOptionRead(
+                    id=option.id,
+                    position=option.position,
+                    content=option.content,
+                    is_correct=(option.is_correct if should_show_correctness else None),
+                )
+                for option in options
+            ],
+        ),
+    )
+
+
+@router.get(
+    "/{code}/game/current-question/answer-stats",
+    response_model=CurrentQuestionAnswerStatsRead,
+)
+async def get_current_question_answer_stats_endpoint(
+    code: str,
+    session: DbSession,
+    organizer_token: OrganizerToken = None,
+) -> CurrentQuestionAnswerStatsRead:
+    if organizer_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Organizer token is required",
+        )
+
+    try:
+        (
+            phase,
+            answered_count,
+            participants_count,
+        ) = await get_current_question_answer_stats(
+            session=session,
+            room_code=code,
+            organizer_token=organizer_token,
+        )
+    except RoomNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found",
+        ) from error
+    except OrganizerTokenInvalidError as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid organizer token",
+        ) from error
+    except GameSessionNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Game is not configured",
+        ) from error
+    except CurrentQuestionAnswerStatsNotAvailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Answer stats are not available in this game phase",
+        ) from error
+
+    return CurrentQuestionAnswerStatsRead(
+        phase=phase,
+        answered_count=answered_count,
+        participants_count=participants_count,
     )
 
 

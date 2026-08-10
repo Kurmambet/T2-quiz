@@ -99,3 +99,24 @@ export type Leaderboard = {
   phase: string;
   entries: LeaderboardEntry[];
 };
+export type HostQuestionOption = {
+  id: string;
+  position: number;
+  content: string;
+  is_correct: boolean | null;
+};
+
+export type HostQuestion = {
+  id: string;
+  position: number;
+  content: string;
+  time_limit_seconds: number;
+  points: number;
+  options: HostQuestionOption[];
+};
+
+export type CurrentHostQuestion = {
+  phase: string;
+  question_deadline_at: string | null;
+  question: HostQuestion;
+};

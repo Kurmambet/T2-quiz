@@ -540,3 +540,46 @@ select option {
     grid-column: 2;
   }
 }
+
+.t2-host-question-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--t2-gap);
+  margin-top: 1.5rem;
+}
+
+.t2-host-question-option {
+  min-width: 0;
+  padding: var(--t2-pad);
+  border: 2px solid transparent;
+  background: var(--t2-black);
+  color: var(--t2-white);
+}
+
+.t2-host-question-option .t2-eyebrow {
+  color: var(--t2-lime);
+}
+
+.t2-host-question-option .t2-lead {
+  margin-top: 0;
+}
+
+.t2-host-question-option--correct {
+  border-color: var(--t2-lime);
+  background: var(--t2-lime);
+  color: var(--t2-black);
+}
+
+.t2-host-question-option--correct .t2-eyebrow {
+  color: var(--t2-black);
+}
+
+.t2-host-question-option--incorrect {
+  opacity: 0.55;
+}
+
+@media (max-width: 760px) {
+  .t2-host-question-options {
+    grid-template-columns: 1fr;
+  }
+}

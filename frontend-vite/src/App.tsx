@@ -50,6 +50,7 @@ function App() {
 
   const [quizTemplates, setQuizTemplates] = useState<QuizTemplate[]>([]);
   const [gameSession, setGameSession] = useState<GameSession | null>(null);
+  const [realtimeRevision, setRealtimeRevision] = useState(0);
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [defaultTimeLimit, setDefaultTimeLimit] = useState(30);
@@ -167,6 +168,8 @@ function App() {
   }, []);
 
   const refreshRoomData = useCallback(async (): Promise<void> => {
+    setRealtimeRevision((revision) => revision + 1);
+
     if (participantSession) {
       try {
         const [session, roomLobby, loadedGameSession] = await Promise.all([
@@ -399,6 +402,7 @@ function App() {
         nextGamePhase={nextGamePhase}
         quizTemplates={quizTemplates}
         realtimeStatus={realtimeStatus}
+        realtimeRevision={realtimeRevision}
         selectedTemplateId={selectedTemplateId}
         showCorrectAnswer={showCorrectAnswer}
         onAllowLateJoinChange={setAllowLateJoin}

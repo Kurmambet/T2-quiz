@@ -2,9 +2,10 @@ import type { GamePhase } from "../lib/game-phase";
 import type { RealtimeConnectionStatus } from "../lib/use-room-realtime";
 import type { GameSession, QuizTemplate, RoomLobby } from "../types/api";
 import { LeaderboardScene } from "../components/shared/LeaderboardScene";
-
+import { HostQuestionScene } from "../components/host/HostQuestionScene";
 type HostRoomPageProps = {
   lobby: RoomLobby;
+  realtimeRevision: number;
   organizerToken: string;
   quizTemplates: QuizTemplate[];
   gameSession: GameSession | null;
@@ -30,6 +31,7 @@ type HostRoomPageProps = {
 
 export function HostRoomPage({
   lobby,
+  realtimeRevision,
   organizerToken,
   quizTemplates,
   gameSession,
@@ -43,6 +45,7 @@ export function HostRoomPage({
   isLoading,
   message,
   gamePhaseLabel,
+
   onSelectedTemplateIdChange,
   onDefaultTimeLimitChange,
   onAllowLateJoinChange,
@@ -231,6 +234,13 @@ export function HostRoomPage({
 
           <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
         </aside>
+
+        <HostQuestionScene
+          currentGamePhase={currentGamePhase}
+          organizerToken={organizerToken}
+          refreshKey={realtimeRevision}
+          roomCode={lobby.room.code}
+        />
 
         <LeaderboardScene
           currentGamePhase={currentGamePhase}

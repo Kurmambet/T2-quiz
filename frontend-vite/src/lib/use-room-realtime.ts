@@ -150,7 +150,8 @@ export function useRoomRealtime({
 
         if (
           event?.type === "room.state_changed" ||
-          event?.type === "room.lobby_changed"
+          event?.type === "room.lobby_changed" ||
+          event?.type === "room.answer_submitted"
         ) {
           void onRoomChangedRef.current();
         }
