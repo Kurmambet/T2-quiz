@@ -4,10 +4,12 @@ import uuid
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.game_session import GameSession
 from app.models.participant import Participant
 from app.models.participant_answer import ParticipantAnswer
 from app.schemas.game_session import GamePhase
+from app.services.game_session_queries import (
+    get_latest_game_session_for_room,
+)
 from app.services.game_sessions import GameSessionNotFoundError
 from app.services.participants import get_participant_session
 from app.services.rooms import OrganizerTokenInvalidError, get_room_by_code
@@ -45,10 +47,9 @@ async def get_leaderboard(
         participant_token=participant_token,
     )
 
-    game_session = await session.scalar(
-        select(GameSession).where(
-            GameSession.room_id == room.id,
-        )
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
     )
 
     if game_session is None:

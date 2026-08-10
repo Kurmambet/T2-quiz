@@ -364,3 +364,117 @@ def test_answer_rejects_option_from_another_question() -> None:
         assert answer_response.json() == {
             "detail": ("Selected option does not belong to the current question"),
         }
+
+
+def test_finished_room_can_start_a_new_quiz_with_same_players() -> None:
+    with TestClient(app) as client:
+        game = create_test_game(
+            client,
+            allow_late_join=True,
+        )
+
+        first_game_response = client.get(
+            f"/api/v1/rooms/{game['room_code']}/game",
+        )
+
+        assert first_game_response.status_code == 200
+
+        first_game = first_game_response.json()
+
+        first_question = get_current_question(
+            client,
+            game,
+        )
+
+        first_answer_response = client.post(
+            f"/api/v1/rooms/{game['room_code']}/game/current-question/answer",
+            headers=game["participant_headers"],
+            json={
+                "selected_option_id": first_question["question"]["options"][0]["id"],
+            },
+        )
+
+        assert first_answer_response.status_code == 201
+
+        finish_first_game_response = client.post(
+            f"/api/v1/rooms/{game['room_code']}/game/transition",
+            headers=game["organizer_headers"],
+            json={"target_phase": "finished"},
+        )
+
+        assert finish_first_game_response.status_code == 200
+
+        configure_second_game_response = client.post(
+            f"/api/v1/rooms/{game['room_code']}/game",
+            headers=game["organizer_headers"],
+            json={
+                "quiz_template_id": first_game["quiz_template_id"],
+                "settings": {
+                    "allow_late_join": True,
+                    "show_correct_answer": True,
+                    "default_time_limit_seconds": 60,
+                },
+            },
+        )
+
+        assert configure_second_game_response.status_code == 200
+
+        second_game = configure_second_game_response.json()
+
+        assert second_game["id"] != first_game["id"]
+        assert second_game["room_id"] == first_game["room_id"]
+        assert second_game["quiz_template_id"] == first_game["quiz_template_id"]
+        assert second_game["state"]["phase"] == "setup"
+        assert second_game["state"]["current_question_position"] == 0
+        assert second_game["started_at"] is None
+        assert second_game["finished_at"] is None
+
+        lobby_response = client.get(
+            f"/api/v1/rooms/{game['room_code']}",
+        )
+
+        assert lobby_response.status_code == 200
+
+        lobby = lobby_response.json()
+
+        assert lobby["room"]["code"] == game["room_code"]
+        assert lobby["room"]["status"] == "lobby"
+        assert len(lobby["participants"]) == 1
+        assert lobby["participants"][0]["username"] == "pytest player"
+
+        start_second_game_response = client.post(
+            f"/api/v1/rooms/{game['room_code']}/start",
+            headers=game["organizer_headers"],
+        )
+
+        assert start_second_game_response.status_code == 200
+
+        for target_phase in (
+            "presentation",
+            "question",
+            "answers_closed",
+            "answer_reveal",
+            "scoreboard",
+        ):
+            transition_response = client.post(
+                f"/api/v1/rooms/{game['room_code']}/game/transition",
+                headers=game["organizer_headers"],
+                json={"target_phase": target_phase},
+            )
+
+            assert transition_response.status_code == 200
+
+        leaderboard_response = client.get(
+            f"/api/v1/rooms/{game['room_code']}/game/leaderboard",
+            headers=game["participant_headers"],
+        )
+
+        assert leaderboard_response.status_code == 200
+
+        leaderboard = leaderboard_response.json()
+
+        assert leaderboard["phase"] == "scoreboard"
+        assert len(leaderboard["entries"]) == 1
+        assert leaderboard["entries"][0]["username"] == "pytest player"
+        assert leaderboard["entries"][0]["total_points"] == 0
+        assert leaderboard["entries"][0]["answered_questions"] == 0

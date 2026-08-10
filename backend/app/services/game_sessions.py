@@ -13,6 +13,9 @@ from app.schemas.game_session import (
     GameSessionConfigure,
     GameSessionTransition,
 )
+from app.services.game_session_queries import (
+    get_latest_game_session_for_room,
+)
 from app.services.rooms import (
     OrganizerTokenInvalidError,
     get_room_by_code,
@@ -90,7 +93,10 @@ async def configure_quiz_game(
     ):
         raise OrganizerTokenInvalidError
 
-    if room.status != RoomStatus.LOBBY.value:
+    if room.status not in {
+        RoomStatus.LOBBY.value,
+        RoomStatus.FINISHED.value,
+    }:
         raise RoomNotConfigurableError
 
     template = await session.scalar(
@@ -103,13 +109,30 @@ async def configure_quiz_game(
     if template is None:
         raise QuizTemplateNotFoundError
 
-    game_session = await session.scalar(
-        select(GameSession).where(
-            GameSession.room_id == room.id,
-        )
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
+        for_update=True,
     )
 
-    if game_session is None:
+    if room.status == RoomStatus.FINISHED.value:
+        room.status = RoomStatus.LOBBY.value
+
+        game_session = GameSession(
+            room_id=room.id,
+            game_type="quiz",
+            quiz_template_id=template.id,
+            settings=payload.settings,
+            state={
+                "phase": GamePhase.SETUP.value,
+                "current_question_position": 0,
+                "question_deadline_at": None,
+                "current_question_time_limit_seconds": None,
+            },
+        )
+
+        session.add(game_session)
+    elif game_session is None:
         game_session = GameSession(
             room_id=room.id,
             game_type="quiz",
@@ -134,7 +157,8 @@ async def configure_quiz_game(
             "question_deadline_at": None,
             "current_question_time_limit_seconds": None,
         }
-
+        game_session.started_at = None
+        game_session.finished_at = None
     await session.commit()
     await session.refresh(game_session)
 
@@ -150,10 +174,9 @@ async def get_game_session(
         room_code=room_code,
     )
 
-    game_session = await session.scalar(
-        select(GameSession).where(
-            GameSession.room_id == room.id,
-        )
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
     )
 
     if game_session is None:
@@ -184,12 +207,10 @@ async def transition_game_session(
     if room.status != RoomStatus.ACTIVE.value:
         raise GameSessionNotActiveError
 
-    game_session = await session.scalar(
-        select(GameSession)
-        .where(
-            GameSession.room_id == room.id,
-        )
-        .with_for_update()
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
+        for_update=True,
     )
 
     if game_session is None or game_session.quiz_template_id is None:
