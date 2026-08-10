@@ -3,6 +3,8 @@ import type { RealtimeConnectionStatus } from "../lib/use-room-realtime";
 import type { GameSession, QuizTemplate, RoomLobby } from "../types/api";
 import { LeaderboardScene } from "../components/shared/LeaderboardScene";
 import { HostQuestionScene } from "../components/host/HostQuestionScene";
+import { CreateQuizTemplateForm } from "../components/host/CreateQuizTemplateForm";
+
 type HostRoomPageProps = {
   lobby: RoomLobby;
   realtimeRevision: number;
@@ -27,6 +29,7 @@ type HostRoomPageProps = {
   onStartRoom: () => void;
   onTransitionGame: (targetPhase: GamePhase) => void;
   onClearSession: () => void;
+  onQuizTemplateCreated: (template: QuizTemplate) => void;
 };
 
 export function HostRoomPage({
@@ -51,6 +54,7 @@ export function HostRoomPage({
   onAllowLateJoinChange,
   onShowCorrectAnswerChange,
   onConfigureGame,
+  onQuizTemplateCreated,
   onStartRoom,
   onTransitionGame,
   onClearSession,
@@ -107,6 +111,8 @@ export function HostRoomPage({
                   </option>
                 ))}
               </select>
+
+              <CreateQuizTemplateForm onCreated={onQuizTemplateCreated} />
 
               {selectedTemplate && (
                 <p className="t2-copy">

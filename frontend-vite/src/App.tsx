@@ -408,6 +408,7 @@ function App() {
         onAllowLateJoinChange={setAllowLateJoin}
         onClearSession={handleClearOrganizerSession}
         onConfigureGame={handleConfigureGame}
+        onQuizTemplateCreated={handleQuizTemplateCreated}
         onDefaultTimeLimitChange={setDefaultTimeLimit}
         onSelectedTemplateIdChange={(templateId) => {
           setSelectedTemplateId(templateId);
@@ -457,6 +458,15 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleQuizTemplateCreated(template: QuizTemplate) {
+    setQuizTemplates((currentTemplates) => [template, ...currentTemplates]);
+
+    setSelectedTemplateId(template.id);
+    setGameSession(null);
+
+    setMessage(`Квиз «${template.title}» создан и выбран для этой room.`);
   }
 
   async function handleStartRoom() {
