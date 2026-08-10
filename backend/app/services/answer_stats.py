@@ -3,11 +3,13 @@ import hmac
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.game_session import GameSession
 from app.models.participant import Participant
 from app.models.participant_answer import ParticipantAnswer
 from app.models.quiz import QuizQuestion
 from app.schemas.game_session import GamePhase
+from app.services.game_session_queries import (
+    get_latest_game_session_for_room,
+)
 from app.services.game_sessions import GameSessionNotFoundError
 from app.services.rooms import OrganizerTokenInvalidError, get_room_by_code
 from app.services.tokens import hash_session_token
@@ -44,10 +46,9 @@ async def get_current_question_answer_stats(
     ):
         raise OrganizerTokenInvalidError
 
-    game_session = await session.scalar(
-        select(GameSession).where(
-            GameSession.room_id == room.id,
-        )
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
     )
 
     if game_session is None or game_session.quiz_template_id is None:

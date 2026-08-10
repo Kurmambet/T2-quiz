@@ -546,6 +546,12 @@ function App() {
       );
 
       setGameSession(configuredGame);
+
+      const roomLobby = await apiRequest<RoomLobby>(
+        `/api/v1/rooms/${organizerSession.roomCode}`,
+      );
+
+      setLobby(roomLobby);
       setMessage("Квиз выбран и настройки сохранены.");
     } catch (error) {
       setMessage(

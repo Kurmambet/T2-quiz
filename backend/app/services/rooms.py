@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.game_session import GameSession
 from app.models.room import Room, RoomStatus
 from app.schemas.room import RoomCreate
+from app.services.game_session_queries import (
+    get_latest_game_session_for_room,
+)
 from app.services.tokens import generate_session_token, hash_session_token
 
 ROOM_CODE_ALPHABET: Final[str] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -101,10 +103,9 @@ async def start_room(
     if room.status != RoomStatus.LOBBY.value:
         raise RoomNotStartableError
 
-    game_session = await session.scalar(
-        select(GameSession).where(
-            GameSession.room_id == room.id,
-        )
+    game_session = await get_latest_game_session_for_room(
+        session=session,
+        room_id=room.id,
     )
 
     if game_session is None or game_session.quiz_template_id is None:
