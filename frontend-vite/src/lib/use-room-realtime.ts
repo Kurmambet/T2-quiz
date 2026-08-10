@@ -33,7 +33,7 @@ function getWebSocketUrl(
   token: string,
 ): string {
   const apiBaseUrl =
-    import.meta.env.VITE_API_BASE_URL ?? window.location.origin;
+    import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
   const url = new URL(`/ws/rooms/${roomCode}`, apiBaseUrl);
 
