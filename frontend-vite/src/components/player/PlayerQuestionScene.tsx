@@ -122,6 +122,7 @@ function QuestionContent({
   }
 
   const { question } = currentQuestion;
+  const isQuestionOpen = currentGamePhase === "question";
   const answerWasSubmitted = submittedOptionId !== null;
 
   return (
@@ -132,11 +133,18 @@ function QuestionContent({
 
       <h2 className="t2-title">{question.content}</h2>
 
-      <p className="t2-copy">
-        Дедлайн: {formatDeadline(currentQuestion.question_deadline_at)}
-      </p>
+      {isQuestionOpen && (
+        <>
+          <p className="t2-copy">
+            До окончания приёма ответов:{" "}
+            {formatDeadline(currentQuestion.question_deadline_at)}
+          </p>
 
-      <QuestionCountdown deadlineAt={currentQuestion.question_deadline_at} />
+          <QuestionCountdown
+            deadlineAt={currentQuestion.question_deadline_at}
+          />
+        </>
+      )}
 
       <p className="t2-lead">{getSceneMessage(currentGamePhase)}</p>
 
