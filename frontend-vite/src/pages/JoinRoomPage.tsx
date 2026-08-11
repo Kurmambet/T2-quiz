@@ -59,7 +59,7 @@ export function JoinRoomPage({
           </form>
         </article>
 
-        <article className="t2-tile t2-tile--blue t2-span-6">
+        <article className="t2-tile t2-tile--gray t2-span-6">
           <p className="t2-eyebrow">Для участника</p>
 
           <h2 className="t2-title">Войти в рум</h2>
@@ -92,7 +92,7 @@ export function JoinRoomPage({
             />
 
             <button
-              className="t2-button t2-button--mono"
+              className="t2-button t2-button--lime"
               disabled={isLoading}
               type="submit"
             >
