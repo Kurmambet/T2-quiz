@@ -28,7 +28,7 @@ export function InviteRoomPanel({ roomCode }: InviteRoomPanelProps) {
   }
 
   return (
-    <article className="t2-tile t2-tile--magenta t2-span-12">
+    <article className="t2-tile t2-tile--gray t2-span-12">
       <p className="t2-eyebrow">Пригласить игроков</p>
 
       <p className="t2-lead">
@@ -39,7 +39,7 @@ export function InviteRoomPanel({ roomCode }: InviteRoomPanelProps) {
         <div className="t2-invite__content">
           <p className="t2-copy">Код комнаты: {roomCode}</p>
 
-          <label className="t2-copy" htmlFor="room-invite-link">
+          <label className="t2-copy" htmlFor="room-invite-link t-w">
             Ссылка для подключения
           </label>
 

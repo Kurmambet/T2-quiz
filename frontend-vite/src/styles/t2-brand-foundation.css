@@ -36,6 +36,7 @@
   --t2-lime: #d7ff00;
   --t2-electric-blue: #00a9ff;
   --t2-blue: #196cff;
+  --t2-gray: #1f2229;
 
   --t2-font-display: "T2 Halvar", Arial Black, Arial, sans-serif;
   /* --t2-font-stencil: "T2 Halvar Stencil", "T2 Halvar", Arial Black, sans-serif; ВРЕМЕННО ТАК!!! */
@@ -103,17 +104,28 @@ a {
   background: var(--t2-white);
   color: var(--t2-black);
 }
+.t2-tile--gray {
+  background: var(--t2-gray);
+  color: var(--t2-white);
+}
+
 .t2-tile--black {
   background: var(--t2-black);
   color: var(--t2-white);
 }
+
 .t2-tile--white {
   background: var(--t2-white);
   color: var(--t2-black);
 }
 .t2-tile--magenta {
   background: var(--t2-magenta);
+  color: var(--t2-white);
+}
+.t2-tile--magenta-spec {
+  background: var(--t2-magenta);
   color: var(--t2-black);
+  padding: 10px;
 }
 .t2-tile--lime {
   background: var(--t2-lime);
@@ -125,6 +137,9 @@ a {
 }
 .t2-tile--blue {
   background: var(--t2-blue);
+  color: var(--t2-white);
+}
+.t-w {
   color: var(--t2-white);
 }
 .t2-span-3 {
@@ -705,7 +720,7 @@ select option {
 }
 
 .t2-invite__content input {
-  color: var(--t2-black);
+  color: var(--t2-white);
 }
 
 .t2-invite__qr {

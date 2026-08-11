@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-
+import { AppHeader } from "./components/shared/AppHeader";
+import { AppFooter } from "./components/shared/AppFooter";
 import { apiRequest } from "./api/client";
 import {
   GAME_PHASE_LABELS,
@@ -461,7 +462,15 @@ function App() {
   }
 
   if (isRestoringSession) {
-    return <RestoringSessionPage />;
+    return (
+      <div className="t2-app-layout">
+        <AppHeader />
+        <main className="t2-app-main">
+          <RestoringSessionPage />
+        </main>
+        <AppFooter />
+      </div>
+    );
   }
 
   if (participantSession) {
@@ -481,39 +490,45 @@ function App() {
 
   if (organizerSession && lobby) {
     return (
-      <HostRoomPage
-        allowLateJoin={allowLateJoin}
-        currentGamePhase={currentGamePhase}
-        defaultTimeLimit={defaultTimeLimit}
-        gamePhaseLabel={
-          currentGamePhase
-            ? GAME_PHASE_LABELS[currentGamePhase]
-            : "Не определена"
-        }
-        gameSession={gameSession}
-        isLoading={isLoading}
-        lobby={lobby}
-        organizerToken={organizerSession.organizerToken}
-        message={message}
-        nextGamePhase={nextGamePhase}
-        quizTemplates={quizTemplates}
-        realtimeRevision={realtimeRevision}
-        selectedTemplateId={selectedTemplateId}
-        showCorrectAnswer={showCorrectAnswer}
-        onAllowLateJoinChange={setAllowLateJoin}
-        onClearSession={handleClearOrganizerSession}
-        onRemoveParticipant={handleRemoveParticipant}
-        onConfigureGame={handleConfigureGame}
-        onQuizTemplateCreated={handleQuizTemplateCreated}
-        onDefaultTimeLimitChange={setDefaultTimeLimit}
-        onSelectedTemplateIdChange={(templateId) => {
-          setSelectedTemplateId(templateId);
-          setGameSession(null);
-        }}
-        onShowCorrectAnswerChange={setShowCorrectAnswer}
-        onStartRoom={handleStartRoom}
-        onTransitionGame={handleTransitionGame}
-      />
+      <div className="t2-app-layout">
+        <AppHeader />
+        <main className="t2-app-main">
+          <HostRoomPage
+            allowLateJoin={allowLateJoin}
+            currentGamePhase={currentGamePhase}
+            defaultTimeLimit={defaultTimeLimit}
+            gamePhaseLabel={
+              currentGamePhase
+                ? GAME_PHASE_LABELS[currentGamePhase]
+                : "Не определена"
+            }
+            gameSession={gameSession}
+            isLoading={isLoading}
+            lobby={lobby}
+            organizerToken={organizerSession.organizerToken}
+            message={message}
+            nextGamePhase={nextGamePhase}
+            quizTemplates={quizTemplates}
+            realtimeRevision={realtimeRevision}
+            selectedTemplateId={selectedTemplateId}
+            showCorrectAnswer={showCorrectAnswer}
+            onAllowLateJoinChange={setAllowLateJoin}
+            onClearSession={handleClearOrganizerSession}
+            onRemoveParticipant={handleRemoveParticipant}
+            onConfigureGame={handleConfigureGame}
+            onQuizTemplateCreated={handleQuizTemplateCreated}
+            onDefaultTimeLimitChange={setDefaultTimeLimit}
+            onSelectedTemplateIdChange={(templateId) => {
+              setSelectedTemplateId(templateId);
+              setGameSession(null);
+            }}
+            onShowCorrectAnswerChange={setShowCorrectAnswer}
+            onStartRoom={handleStartRoom}
+            onTransitionGame={handleTransitionGame}
+          />
+        </main>
+        <AppFooter />
+      </div>
     );
   }
 
@@ -716,18 +731,24 @@ function App() {
   }
 
   return (
-    <JoinRoomPage
-      isLoading={isLoading}
-      message={message}
-      roomCode={roomCode}
-      roomTitle={roomTitle}
-      username={username}
-      onCreateRoom={handleCreateRoom}
-      onJoinRoom={handleJoinRoom}
-      onRoomCodeChange={setRoomCode}
-      onRoomTitleChange={setRoomTitle}
-      onUsernameChange={setUsername}
-    />
+    <div className="t2-app-layout">
+      <AppHeader />
+      <main className="t2-app-main">
+        <JoinRoomPage
+          isLoading={isLoading}
+          message={message}
+          roomCode={roomCode}
+          roomTitle={roomTitle}
+          username={username}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          onRoomCodeChange={setRoomCode}
+          onRoomTitleChange={setRoomTitle}
+          onUsernameChange={setUsername}
+        />
+      </main>
+      <AppFooter />
+    </div>
   );
 }
 
