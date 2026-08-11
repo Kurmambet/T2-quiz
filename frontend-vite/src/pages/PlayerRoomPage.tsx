@@ -38,8 +38,6 @@ export function PlayerRoomPage({
 
           <p className="t2-copy">Код комнаты: {participantSession.room.code}</p>
 
-          <p className="t2-copy">Realtime: {realtimeStatus}</p>
-
           <p className="t2-copy">
             Сцена:{" "}
             {currentGamePhase ? gamePhaseLabel : "Ожидаем настройки игры"}
@@ -72,7 +70,7 @@ export function PlayerRoomPage({
           roomCode={participantSession.room.code}
         />
 
-        <article className="t2-tile t2-tile--blue t2-span-12">
+        <article className="t2-tile t2-tile--gray t2-span-12">
           <p className="t2-eyebrow">Lobby</p>
 
           <p className="t2-lead">Ожидаем, когда ведущий запустит игру.</p>
@@ -81,7 +79,7 @@ export function PlayerRoomPage({
             Игроков в комнате: {lobby?.participants.length ?? 0}
           </p>
 
-          <div className="t2-participants">
+          <div className="t2-">
             {lobby?.participants.map((participant) => (
               <span className="t2-participant" key={participant.id}>
                 {participant.username}

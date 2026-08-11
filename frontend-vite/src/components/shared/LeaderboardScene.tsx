@@ -93,7 +93,7 @@ export function LeaderboardScene({
 
   if (isLoading) {
     return (
-      <article className="t2-tile t2-tile--electric t2-span-12">
+      <article className="t2-tile t2-tile--gray t2-span-12">
         <p className="t2-eyebrow">Результаты</p>
         <p className="t2-lead">Считаем баллы…</p>
       </article>
@@ -114,7 +114,7 @@ export function LeaderboardScene({
   }
 
   return (
-    <article className="t2-tile t2-tile--electric t2-span-12">
+    <article className="t2-tile t2-tile--gray t2-span-12">
       <p className="t2-eyebrow">
         {currentGamePhase === "finished"
           ? "Итоговые результаты"

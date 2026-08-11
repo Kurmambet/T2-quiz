@@ -125,7 +125,7 @@ function QuestionContent({
   const answerWasSubmitted = submittedOptionId !== null;
 
   return (
-    <article className="t2-tile t2-tile--lime t2-span-12">
+    <article className="t2-tile t2-tile--white t2-span-12">
       <p className="t2-eyebrow">
         Вопрос {question.position} · {question.points} баллов
       </p>
@@ -169,7 +169,7 @@ function QuestionContent({
 
       {currentGamePhase === "question" && !answerWasSubmitted && (
         <button
-          className="t2-button t2-button--blue"
+          className="t2-button t2-button--lime"
           disabled={!selectedOption || isSubmitting}
           onClick={submitAnswer}
           type="button"

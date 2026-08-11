@@ -31,8 +31,8 @@ export function JoinRoomPage({
         <article className="t2-tile t2-tile--white t2-span-6">
           <p className="t2-eyebrow">Для ведущего</p>
 
-          <h1 className="t2-title">Создать рум</h1>
-
+          <h1 className="t2-title mb-4">Создать комнату</h1>
+          
           <form onSubmit={onCreateRoom}>
             <label className="t2-copy" htmlFor="room-title">
               Название квиза
@@ -57,11 +57,11 @@ export function JoinRoomPage({
           </form>
         </article>
 
-        <article className="t2-tile t2-tile--blue t2-span-6">
+        <article className="t2-tile t2-tile--gray t2-span-6">
           <p className="t2-eyebrow">Для участника</p>
 
-          <h2 className="t2-title">Войти в рум</h2>
-
+          <h2 className="t2-title mb-4">Войти в комнату</h2>
+          <b></b>
           <form onSubmit={onJoinRoom}>
             <label className="t2-copy" htmlFor="room-code">
               Код комнаты
@@ -90,7 +90,7 @@ export function JoinRoomPage({
             />
 
             <button
-              className="t2-button t2-button--mono"
+              className="t2-button t2-button--lime"
               disabled={isLoading}
               type="submit"
             >

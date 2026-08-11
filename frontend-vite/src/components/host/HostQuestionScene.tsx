@@ -133,7 +133,7 @@ export function HostQuestionScene({
 
   if (isLoading) {
     return (
-      <article className="t2-tile t2-tile--electric t2-span-12">
+      <article className="t2-tile t2-tile--white  t2-span-12">
         <p className="t2-eyebrow">Текущий вопрос</p>
         <p className="t2-lead">Загружаем вопрос…</p>
       </article>
@@ -156,7 +156,7 @@ export function HostQuestionScene({
   const { question } = currentQuestion;
 
   return (
-    <article className="t2-tile t2-tile--electric t2-span-12">
+    <article className="t2-tile t2-tile--white t2-span-12">
       <p className="t2-eyebrow">
         Вопрос {question.position} · {question.points} баллов
       </p>

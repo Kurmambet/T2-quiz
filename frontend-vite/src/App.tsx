@@ -32,6 +32,9 @@ import type {
   RoomLobby,
 } from "./types/api";
 
+import { AppHeader } from "./components/shared/AppHeader";
+import { AppFooter } from "./components/shared/AppFooter";
+
 function getInviteRoomCode(): string {
   const roomCode = new URLSearchParams(window.location.search).get("room");
 
@@ -378,69 +381,6 @@ function App() {
     }
   }
 
-  if (isRestoringSession) {
-    return <RestoringSessionPage />;
-  }
-
-  if (participantSession) {
-    return (
-      <PlayerRoomPage
-        participantSession={participantSession}
-        participantToken={
-          getActiveParticipantSession()?.participantToken ?? null
-        }
-        lobby={lobby}
-        realtimeStatus={realtimeStatus}
-        currentGamePhase={currentGamePhase}
-        gamePhaseLabel={
-          currentGamePhase
-            ? GAME_PHASE_LABELS[currentGamePhase]
-            : "Ожидаем настройки игры"
-        }
-        onClearSession={clearParticipantSession}
-      />
-    );
-  }
-
-  if (organizerSession && lobby) {
-    return (
-      <HostRoomPage
-        allowLateJoin={allowLateJoin}
-        currentGamePhase={currentGamePhase}
-        defaultTimeLimit={defaultTimeLimit}
-        gamePhaseLabel={
-          currentGamePhase
-            ? GAME_PHASE_LABELS[currentGamePhase]
-            : "Не определена"
-        }
-        gameSession={gameSession}
-        isLoading={isLoading}
-        lobby={lobby}
-        organizerToken={organizerSession.organizerToken}
-        message={message}
-        nextGamePhase={nextGamePhase}
-        quizTemplates={quizTemplates}
-        realtimeStatus={realtimeStatus}
-        realtimeRevision={realtimeRevision}
-        selectedTemplateId={selectedTemplateId}
-        showCorrectAnswer={showCorrectAnswer}
-        onAllowLateJoinChange={setAllowLateJoin}
-        onClearSession={handleClearOrganizerSession}
-        onRemoveParticipant={handleRemoveParticipant}
-        onConfigureGame={handleConfigureGame}
-        onQuizTemplateCreated={handleQuizTemplateCreated}
-        onDefaultTimeLimitChange={setDefaultTimeLimit}
-        onSelectedTemplateIdChange={(templateId) => {
-          setSelectedTemplateId(templateId);
-          setGameSession(null);
-        }}
-        onShowCorrectAnswerChange={setShowCorrectAnswer}
-        onStartRoom={handleStartRoom}
-        onTransitionGame={handleTransitionGame}
-      />
-    );
-  }
-
   async function handleConfigureGame() {
     if (!organizerSession || !selectedTemplateId) {
       setMessage("Сначала выбери готовый квиз.");
@@ -633,19 +573,108 @@ function App() {
     setMessage("Локальная сессия ведущего очищена.");
   }
 
+  if (isRestoringSession) {
+    return (
+      <div className="t2-app-layout">
+        <AppHeader />
+        <main className="t2-app-main">
+          <RestoringSessionPage />
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  if (participantSession) {
+    return (
+      <div className="t2-app-layout">
+        <AppHeader />
+        <main className="t2-app-main">
+          <PlayerRoomPage
+            participantSession={participantSession}
+            participantToken={
+              getActiveParticipantSession()?.participantToken ?? null
+            }
+            lobby={lobby}
+            realtimeStatus={realtimeStatus}
+            currentGamePhase={currentGamePhase}
+            gamePhaseLabel={
+              currentGamePhase
+                ? GAME_PHASE_LABELS[currentGamePhase]
+                : "Ожидаем настройки игры"
+            }
+            onClearSession={clearParticipantSession}
+          />
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  if (organizerSession && lobby) {
+    return (
+      <div className="t2-app-layout">
+        <AppHeader />
+        <main className="t2-app-main">
+          <HostRoomPage
+            allowLateJoin={allowLateJoin}
+            currentGamePhase={currentGamePhase}
+            defaultTimeLimit={defaultTimeLimit}
+            gamePhaseLabel={
+              currentGamePhase
+                ? GAME_PHASE_LABELS[currentGamePhase]
+                : "Не определена"
+            }
+            gameSession={gameSession}
+            isLoading={isLoading}
+            lobby={lobby}
+            organizerToken={organizerSession.organizerToken}
+            message={message}
+            nextGamePhase={nextGamePhase}
+            quizTemplates={quizTemplates}
+            realtimeStatus={realtimeStatus}
+            realtimeRevision={realtimeRevision}
+            selectedTemplateId={selectedTemplateId}
+            showCorrectAnswer={showCorrectAnswer}
+            onAllowLateJoinChange={setAllowLateJoin}
+            onClearSession={handleClearOrganizerSession}
+            onRemoveParticipant={handleRemoveParticipant}
+            onConfigureGame={handleConfigureGame}
+            onQuizTemplateCreated={handleQuizTemplateCreated}
+            onDefaultTimeLimitChange={setDefaultTimeLimit}
+            onSelectedTemplateIdChange={(templateId) => {
+              setSelectedTemplateId(templateId);
+              setGameSession(null);
+            }}
+            onShowCorrectAnswerChange={setShowCorrectAnswer}
+            onStartRoom={handleStartRoom}
+            onTransitionGame={handleTransitionGame}
+          />
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
   return (
-    <JoinRoomPage
-      isLoading={isLoading}
-      message={message}
-      roomCode={roomCode}
-      roomTitle={roomTitle}
-      username={username}
-      onCreateRoom={handleCreateRoom}
-      onJoinRoom={handleJoinRoom}
-      onRoomCodeChange={setRoomCode}
-      onRoomTitleChange={setRoomTitle}
-      onUsernameChange={setUsername}
-    />
+    <div className="t2-app-layout">
+      <AppHeader />
+      <main className="t2-app-main">
+        <JoinRoomPage
+          isLoading={isLoading}
+          message={message}
+          roomCode={roomCode}
+          roomTitle={roomTitle}
+          username={username}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          onRoomCodeChange={setRoomCode}
+          onRoomTitleChange={setRoomTitle}
+          onUsernameChange={setUsername}
+        />
+      </main>
+      <AppFooter />
+    </div>
   );
 }
 

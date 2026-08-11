@@ -36,6 +36,7 @@
   --t2-lime: #d7ff00;
   --t2-electric-blue: #00a9ff;
   --t2-blue: #196cff;
+  --t2-gray: 	#1f2229;
 
   --t2-font-display: "T2 Halvar", Arial Black, Arial, sans-serif;
   /* --t2-font-stencil: "T2 Halvar Stencil", "T2 Halvar", Arial Black, sans-serif; ВРЕМЕННО ТАК!!! */
@@ -107,13 +108,17 @@ a {
   background: var(--t2-black);
   color: var(--t2-white);
 }
+.t2-tile--gray {
+  background: var(--t2-gray);
+  color: var(--t2-white);
+}
 .t2-tile--white {
   background: var(--t2-white);
   color: var(--t2-black);
 }
 .t2-tile--magenta {
   background: var(--t2-magenta);
-  color: var(--t2-black);
+  color: var(--t2-white);
 }
 .t2-tile--lime {
   background: var(--t2-lime);
@@ -146,6 +151,10 @@ a {
   grid-column: 1 / -1;
 }
 
+.mb-4{
+   margin-bottom: 16px;
+}
+
 .t2-eyebrow,
 .t2-title,
 .t2-price,
@@ -161,11 +170,25 @@ a {
   letter-spacing: -0.025em;
   text-transform: uppercase;
 }
+
+.t2-title--spec-mangeta{
+  background-color: var(--t2-magenta);
+  color: var(--t2-black);
+  padding: 10px;
+}
+
+.t-w{
+  color: var(--t2-white);
+}
+
 .t2-title {
   max-width: 12ch;
   margin: 0;
   font-size: clamp(40px, 6vw, 112px);
   line-height: 0.96;
+}
+.t2-tile--electric-blue{
+background-color: var(--t2-electric-blue);
 }
 .t2-title--stencil {
   font-family: var(--t2-font-stencil);
@@ -355,6 +378,7 @@ button:disabled {
 
 .t2-participants {
   display: flex;
+  
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 1.25rem;
@@ -365,8 +389,9 @@ button:disabled {
   align-items: center;
   min-height: 36px;
   padding: 0.45rem 0.7rem;
-  background: var(--t2-white);
-  color: var(--t2-black);
+  color: var(--t2-white);
+  border: solid var(--t2-white) 2px;
+ 
   font-size: 16px;
   line-height: 1;
 }
@@ -438,8 +463,8 @@ select option {
 }
 
 .t2-question-option--selected {
-  border-color: var(--t2-magenta);
-  background: var(--t2-magenta);
+  border-color: var(--t2-electric-blue);
+  background: var(--t2-electric-blue);
   color: var(--t2-black);
 }
 
@@ -679,10 +704,10 @@ select option {
 .t2-participant__remove {
   min-height: 26px;
   padding: 0.25rem 0.45rem;
-  border: 1px solid var(--t2-black);
+  border: 1px solid var(--t2-magenta);
   border-radius: 0;
   background: transparent;
-  color: var(--t2-black);
+  color: var(--t2-magenta);
   cursor: pointer;
   font-family: var(--t2-font-body);
   font-size: 13px;
@@ -691,6 +716,7 @@ select option {
 
 .t2-participant__remove:hover:not(:disabled) {
   background: var(--t2-magenta);
+  color: var(--t2-white);
 }
 .t2-invite {
   display: grid;
@@ -705,7 +731,7 @@ select option {
 }
 
 .t2-invite__content input {
-  color: var(--t2-black);
+  color: var(--t2-white);
 }
 
 .t2-invite__qr {

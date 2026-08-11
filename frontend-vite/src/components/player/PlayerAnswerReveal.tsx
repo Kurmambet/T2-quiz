@@ -87,7 +87,7 @@ export function PlayerAnswerReveal({
 
   if (isLoading) {
     return (
-      <article className="t2-tile t2-tile--electric t2-span-12">
+      <article className="t2-tile t2-tile--gray t2-span-12">
         <p className="t2-eyebrow">Результат вопроса</p>
         <p className="t2-lead">Проверяем ответ…</p>
       </article>
@@ -112,7 +112,7 @@ export function PlayerAnswerReveal({
     reveal.correct_option_content === null
   ) {
     return (
-      <article className="t2-tile t2-tile--electric t2-span-12">
+      <article className="t2-tile t2-tile--gray t2-span-12">
         <p className="t2-eyebrow">Результат вопроса</p>
         <h2 className="t2-title">Ответы скрыты</h2>
         <p className="t2-lead">
@@ -124,7 +124,7 @@ export function PlayerAnswerReveal({
 
   if (reveal.selected_option_id === null) {
     return (
-      <article className="t2-tile t2-tile--electric t2-span-12">
+      <article className="t2-tile t2-tile--gray t2-span-12">
         <p className="t2-eyebrow">Правильный ответ</p>
         <h2 className="t2-title">{reveal.correct_option_content}</h2>
         <p className="t2-lead">Ты не отправил ответ на этот вопрос.</p>
@@ -145,7 +145,7 @@ export function PlayerAnswerReveal({
   }
 
   return (
-    <article className="t2-tile t2-tile--magenta t2-span-12">
+    <article className="t2-tile t2-tile--gray t2-span-12">
       <p className="t2-eyebrow">Правильный ответ</p>
       <h2 className="t2-title">{reveal.correct_option_content}</h2>
       <p className="t2-lead">

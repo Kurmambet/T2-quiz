@@ -85,8 +85,6 @@ export function HostRoomPage({
 
           <p className="t2-lead">Код для подключения: {lobby.room.code}</p>
 
-          <p className="t2-copy">Realtime: {realtimeStatus}</p>
-
           <p className="t2-copy">
             Игроков в lobby: {lobby.participants.length}
           </p>
@@ -244,7 +242,7 @@ export function HostRoomPage({
           <p className="t2-title t2-title--stencil">{lobby.room.status}</p>
         </aside>
 
-        <InviteRoomPanel roomCode={lobby.room.code} />
+        
 
         <HostQuestionScene
           currentGamePhase={currentGamePhase}
@@ -259,7 +257,7 @@ export function HostRoomPage({
           roomCode={lobby.room.code}
         />
 
-        <article className="t2-tile t2-tile--blue t2-span-12">
+        <article className="t2-tile t2-tile--gray t2-span-12">
           <p className="t2-eyebrow">Участники</p>
 
           <div className="t2-participants">
@@ -291,11 +289,13 @@ export function HostRoomPage({
         </article>
 
         {message && (
-          <aside className="t2-tile t2-tile--black t2-span-12">
+          <aside className="t2-tile t2-tile--magenta t2-span-12">
             <p className="t2-eyebrow">Статус действия</p>
             <p className="t2-lead">{message}</p>
           </aside>
         )}
+
+        <InviteRoomPanel roomCode={lobby.room.code} />
       </section>
     </main>
   );
