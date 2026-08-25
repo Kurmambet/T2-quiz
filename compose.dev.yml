@@ -13,6 +13,8 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+    networks:
+      - app_net
 
   redis:
     image: redis:7-alpine
@@ -25,6 +27,8 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+    networks:
+      - app_net
 
   migrate:
     build:
@@ -39,6 +43,8 @@ services:
       db:
         condition: service_healthy
     restart: "no"
+    networks:
+      - app_net
 
   api:
     build:
@@ -69,7 +75,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    networks:
+      - app_net
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  app_net:
+    name: t2_quiz_dev_net

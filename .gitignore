@@ -15,3 +15,4 @@ wheels/
 tree.py
 project_structure.md
 manual-production-deploy-ubuntu.md
+monitoring/.env
