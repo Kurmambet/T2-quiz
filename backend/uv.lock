@@ -1133,9 +1133,7 @@ dependencies = [
     { name = "prometheus-client" },
     { name = "prometheus-fastapi-instrumentator" },
     { name = "pydantic-settings" },
-    { name = "pytest" },
     { name = "redis", extra = ["hiredis"] },
-    { name = "ruff" },
     { name = "sqlalchemy" },
 ]
 
@@ -1155,9 +1153,7 @@ requires-dist = [
     { name = "prometheus-client", specifier = ">=0.26.0" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=8.1.0" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
-    { name = "pytest", specifier = ">=9.1.1" },
     { name = "redis", extras = ["hiredis"], specifier = ">=8.1.0" },
-    { name = "ruff", specifier = ">=0.16.2" },
     { name = "sqlalchemy", specifier = ">=2.0.51" },
 ]
 
