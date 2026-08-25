@@ -1,0 +1,100 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "CPU load высокий на {{ $labels.instance }}"
+
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Свободной памяти < 10% на {{ $labels.instance }}"
+
+      - alert: HostOutOfDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 15m
+        labels: { severity: critical }
+        annotations:
+          summary: "Свободного места на диске < 15%"
+
+  - name: postgres
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "PostgreSQL недоступен"
+
+      - alert: PostgresTooManyConnections
+        expr: sum(pg_stat_activity_count) by (instance) > 40
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Слишком много соединений к PostgreSQL"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration[5m]) > 60
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Обнаружены долгие транзакции PostgreSQL"
+
+  - name: redis
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Redis недоступен"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Redis использует > 90% выделенной памяти"
+
+  - name: t2-quiz-app
+    rules:
+      - alert: ApiDown
+        expr: up{job="t2-quiz-api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Backend API недоступен"
+
+      - alert: ApiHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="t2-quiz-api", status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="t2-quiz-api"}[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "Доля 5xx ответов API > 5%"
+
+      - alert: ApiHighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="t2-quiz-api"}[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "P95 latency API превышает 1 секунду"
+
+      - alert: WebSocketConnectionsDrop
+        expr: |
+          rate(websocket_connections_total{job="t2-quiz-api", event="disconnect"}[5m])
+          > rate(websocket_connections_total{job="t2-quiz-api", event="connect"}[5m]) * 3
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Аномально высокий rate отключений WebSocket"

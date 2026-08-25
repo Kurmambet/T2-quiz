@@ -2,12 +2,19 @@ import json
 import uuid
 from datetime import UTC, datetime
 
+from prometheus_client import Counter
 from redis.asyncio import Redis
 
 from app.core.config import get_settings
 from app.realtime.events import REDIS_KEY_PREFIX, normalize_room_code
 
 settings = get_settings()
+
+websocket_connections_total = Counter(
+    "websocket_connections_total",
+    "WebSocket connect/disconnect events",
+    ["event"],
+)
 
 
 def room_presence_key(
@@ -35,6 +42,7 @@ async def register_presence(
         json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
         ex=settings.realtime_presence_ttl_seconds,
     )
+    websocket_connections_total.labels(event="connect").inc()
 
 
 async def touch_presence(
@@ -54,3 +62,4 @@ async def remove_presence(
     connection_id: uuid.UUID,
 ) -> None:
     await redis.delete(room_presence_key(room_code, connection_id))
+    websocket_connections_total.labels(event="disconnect").inc()

@@ -104,11 +104,42 @@ jobs:
       - name: Build production frontend
         run: npm run build
 
+  monitoring:
+    name: Monitoring config checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Validate Prometheus config
+        run: |
+          docker run --rm \
+            -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v3.1.0 \
+            promtool check config /etc/prometheus/prometheus.yml
+
+      - name: Validate Prometheus alert rules
+        run: |
+          docker run --rm \
+            -v "$(pwd)/monitoring/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v3.1.0 \
+            promtool check rules /etc/prometheus/alerts.yml
+
+      - name: Validate Alertmanager config
+        run: |
+          docker run --rm \
+            -v "$(pwd)/monitoring/alertmanager:/etc/alertmanager:ro" \
+            prom/alertmanager:v0.28.0 \
+            amtool check-config /etc/alertmanager/alertmanager.yml
+
   deploy:
     name: Deploy production
     needs:
       - backend
       - frontend
+      - monitoring
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -154,6 +185,13 @@ jobs:
 
           docker compose -f compose.prod.yml build
           docker compose -f compose.prod.yml up -d --remove-orphans
+
+          if [ -f monitoring/.env ]; then
+            docker compose -f monitoring/compose.monitoring.yml \
+              --env-file monitoring/.env up -d --remove-orphans
+          else
+            echo "monitoring/.env not found on server, skipping monitoring stack deploy."
+          fi
 
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/health/ready; then
