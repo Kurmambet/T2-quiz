@@ -84,7 +84,7 @@ networks:
   monitoring:
   app_net:
     external: true
-    name: t2-quiz_default
+    name: t2_quiz_prod_net
 
 volumes:
   prometheus_data:
